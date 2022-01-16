@@ -3,47 +3,48 @@ package gwent
 import "fmt"
 
 type GameSide struct {
-	Hand Cards //what the player sees and can choose to play
-	Deck Cards //the rest of the cards, that may be used with spies
-	Heap Cards //discarded cards, that may come back to hand with Medics
+	Hand *Cards //what the player sees and can choose to play
+	Deck *Cards //the rest of the cards, that may be used with spies
+	Heap *Cards //discarded cards, that may come back to hand with Medics
 
-	CloseCombat Cards
+	CloseCombat *Cards
 
-	RangedCombat Cards
+	RangedCombat *Cards
 
-	Siege Cards
+	Siege *Cards
 }
 
-func (g GameSide) New(deck Cards, hand Cards) GameSide {
-	return GameSide{
+func NewGameSide(deck *Cards, hand *Cards) *GameSide {
+	return &GameSide{
 		Deck:         deck,
 		Hand:         hand,
-		Heap:         Cards{},
-		CloseCombat:  Cards{},
-		RangedCombat: Cards{},
-		Siege:        Cards{},
+		Heap:         &Cards{},
+		CloseCombat:  &Cards{},
+		RangedCombat: &Cards{},
+		Siege:        &Cards{},
 	}
 }
 
 type Game struct {
-	WeatherCards Cards
-	SideA        GameSide
-	SideB        GameSide
+	WeatherCards *Cards
+	SideA        *GameSide
+	SideB        *GameSide
 }
 
-func (g Game) New(
-	deckA Cards,
-	handA Cards,
-	deckB Cards,
-	handB Cards,
-) Game {
-	g.SideA = GameSide{}.New(deckA, handA)
-	g.SideB = GameSide{}.New(deckB, handB)
-	g.WeatherCards = Cards{}
-	return g
+func NewGame(
+	deckA *Cards,
+	handA *Cards,
+	deckB *Cards,
+	handB *Cards,
+) *Game {
+	return &Game{
+		WeatherCards: &Cards{},
+		SideA:        NewGameSide(deckA, handA),
+		SideB:        NewGameSide(deckB, handB),
+	}
 }
 
-func (player *GameSide) GetRow(row Row) Cards {
+func (player *GameSide) GetRow(row Row) *Cards {
 	switch row {
 	case CloseCombat:
 		return player.CloseCombat
@@ -56,46 +57,42 @@ func (player *GameSide) GetRow(row Row) Cards {
 	}
 }
 
-func (player *GameSide) Merge() []*Card {
-	arr := make([]*Card,
-		len(player.CloseCombat)+len(player.RangedCombat)+len(player.Siege))
-	for key, _ := range player.CloseCombat {
-		c := player.CloseCombat[key]
-		arr = append(arr, &c)
+func (player *GameSide) Merge() CardList {
+	arr := make(CardList,
+		len(*player.CloseCombat)+len(*player.RangedCombat)+len(*player.Siege))
+	for _, card := range *player.CloseCombat {
+		arr = append(arr, card)
 	}
-	for key, _ := range player.RangedCombat {
-		c := player.RangedCombat[key]
-		arr = append(arr, &c)
+	for _, card := range *player.RangedCombat {
+		arr = append(arr, card)
 	}
-	for key, _ := range player.Siege {
-		c := player.Siege[key]
-		arr = append(arr, &c)
+	for _, card := range *player.Siege {
+		arr = append(arr, card)
 	}
 	return arr
 }
 
-func (game *Game) Merge() []*Card {
-	arr := []*Card{}
+func (game *Game) Merge() CardList {
+	arr := CardList{}
 	arr = append(arr, game.SideA.Merge()...)
 	arr = append(arr, game.SideB.Merge()...)
 	return arr
 }
 
-func (row Cards) Clean() []*Card {
-	removed := []*Card{}
-	for key, card := range row {
+func (row *Cards) Clean() CardList {
+	removed := CardList{}
+	for _, card := range *row {
 		if card.score < 0 {
-			c := row[key]
-			removed = append(removed, &c)
-			delete(row, card.Id)
+			removed = append(removed, card)
+			delete(*row, card.Id)
 		}
 	}
 	return removed
 }
 
-func (row Cards) Clear() {
-	for _, card := range row {
-		delete(row, card.Id)
+func (row *Cards) Clear() {
+	for _, card := range *row {
+		delete(*row, card.Id)
 	}
 }
 
@@ -116,14 +113,14 @@ func (game *Game) WeatherClean() {
 	}
 }
 
-func (gs GameSide) String() string {
+func (gs *GameSide) String() string {
 	return fmt.Sprintf("CloseCombat: %s\nRangedCombat: %s\nSiege: %s\n",
 		gs.CloseCombat,
 		gs.RangedCombat,
 		gs.Siege)
 }
 
-func (g Game) String() string {
+func (g *Game) String() string {
 	return fmt.Sprintf("Side A\n%s===========\nWeather: %s\n==========\nSide B\n%s",
 		g.SideA, g.WeatherCards, g.SideB)
 }

@@ -14,7 +14,7 @@ func (game *Game) PlayMove(card *Card, slotRow Row, player *GameSide, enemy *Gam
 			return
 		}
 
-		var row Cards
+		var row *Cards
 
 		if slotRow == Weather {
 			row = game.WeatherCards
@@ -25,7 +25,7 @@ func (game *Game) PlayMove(card *Card, slotRow Row, player *GameSide, enemy *Gam
 				row = player.GetRow(slotRow)
 			}
 		}
-		MoveCard(player.Heap, row, card)
+		MoveCard(player.Hand, row, card)
 
 		/*post-move*/
 		if card.Effects.Has(Spy) {
@@ -35,7 +35,7 @@ func (game *Game) PlayMove(card *Card, slotRow Row, player *GameSide, enemy *Gam
 		}
 		if card.Effects.Has(Medic) {
 			//draw from heap
-			if len(player.Heap) > 0 {
+			if player.Heap.Len() > 0 {
 				player.Hand.Draw(player.Heap)
 			}
 		}
@@ -55,7 +55,7 @@ func CheckMove(
 	slotRow Row,
 	player *GameSide,
 	enemy *GameSide,
-	weathers Cards,
+	weathers *Cards,
 ) (valid bool) {
 	if slotRow != card.Row {
 		if card.Effects.Has(Agile) {
@@ -67,33 +67,33 @@ func CheckMove(
 	return player.Hand.Has(card)
 }
 
-func InitHand(deck Cards) (hand Cards) {
-	hand = Cards{}
-	for len(hand) < 10 {
+func InitHand(deck *Cards) (hand *Cards) {
+	hand = &Cards{}
+	for hand.Len() < 10 {
 		hand.Draw(deck)
 	}
 	return hand
 }
 
-func (hand Cards) Draw(deck Cards) Card {
-	i := rand.Intn(len(deck))
-	for _, card := range deck {
+func (hand *Cards) Draw(deck *Cards) *Card {
+	i := rand.Intn(len(*deck))
+	for _, card := range *deck {
 		i -= 1
 		if i == 0 {
-			MoveCard(deck, hand, &card)
+			MoveCard(deck, hand, card)
 			return card
 		}
 	}
 	panic(nil)
 }
 
-func InitDeck(cards []Card, faction Faction) Cards {
-	deck := Cards{}
+func InitDeck(cards []Card, faction Faction) *Cards {
+	deck := &Cards{}
 	for id, card := range cards {
 		if card.Faction == faction || card.Faction == Neutral {
 			card.Id = id
 			card.Faction = faction
-			deck.Add(card)
+			deck.Add(&card)
 		}
 	}
 	return deck
@@ -119,7 +119,7 @@ func (row Cards) Score(weatherDebuff bool) (sum int) {
 		card.score = card.Score(weatherDebuff, moraleBoost, hornBoost)
 		if card.Effects.Has(TightBond) {
 			tightBonds.Add(card)
-			tightBonded = append(tightBonded, &card)
+			tightBonded = append(tightBonded, card)
 		}
 	}
 

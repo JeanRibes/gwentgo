@@ -1459,11 +1459,12 @@ var AllCards = []Card{
 	},
 }
 
-var AllCardsMap map[string]Card
+var AllCardsMap map[string]*Card
 
 func init() {
-	AllCardsMap = map[string]Card{}
-	for _, card := range AllCards {
-		AllCardsMap[card.Name] = card
+	AllCardsMap = map[string]*Card{}
+	for key, card := range AllCards {
+		c := AllCards[key]
+		AllCardsMap[card.Name] = &c
 	}
 }

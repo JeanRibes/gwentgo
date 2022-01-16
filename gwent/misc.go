@@ -117,7 +117,7 @@ type Card struct {
 	score       int //cached score
 }
 
-func (card Card) String() string {
+func (card *Card) String() string {
 	return fmt.Sprintf("#%d [%s][%s] %s (%d) {%s}",
 		card.Id,
 		card.Faction,
@@ -172,139 +172,158 @@ func (eff Effects) String() string {
 	return s
 }
 
-type Cards map[int]Card
+type Cards map[int]*Card
 
-func MoveCard(source Cards, dest Cards, card *Card) {
+func MoveCard(source *Cards, dest *Cards, card *Card) {
 	source.Remove(card)
-	dest.Add(*card)
-
-	source.CheckIds()
-	dest.CheckIds()
+	dest.Add(card)
 }
-func MoveCards(source Cards, dest Cards, cards []*Card) {
+func MoveCards(source *Cards, dest *Cards, cards CardList) {
 	source.Removes(cards)
 	dest.Adds(cards)
 }
 
-func (cards Cards) Add(card Card) {
-	cards.CheckIds()
-	for i, _card := range cards {
+func (cards *Cards) Add(card *Card) *Cards {
+	/*for i, _card := range *cards {
 		if i == card.Id {
 			log.Panicf("ID error: %s clashes with %s", card, _card)
 		}
-	}
-
-	cards[card.Id] = card
+	}*/
+	_cards := *cards
+	_cards[card.Id] = card
+	return cards
 }
 
-func (cards Cards) CheckIds() {
-	for i, card := range cards {
+func (cards *Cards) CheckIds() *Cards {
+	for i, card := range *cards {
 		if i != card.Id {
-			log.Panicf("ID clash: #%d should be %s", i, card)
+			log.Printf("ID clash: #%d should be %s", i, card)
 		}
 	}
+	return cards
 }
 
-func (cards Cards) Adds(news []*Card) {
+func (cards *Cards) Adds(news CardList) *Cards {
 	for _, card := range news {
-		cards.Add(*card)
+		cards.Add(card)
 	}
+	return cards
 }
-func (cards Cards) Remove(card *Card) {
-	delete(cards, card.Id)
+func (cards *Cards) Remove(card *Card) *Cards {
+	delete(*cards, card.Id)
+	return cards
 }
 
-func (cards Cards) Removes(to_remove []*Card) {
+func (cards *Cards) Removes(to_remove CardList) *Cards {
 	for _, card := range to_remove {
 		cards.Remove(card)
 	}
+	return cards
 }
 
-func (cards Cards) Effects() Effects {
+func (cards *Cards) Effects() Effects {
 	effects := Effects{}
-	for _, card := range cards {
+	for _, card := range *cards {
 		effects = append(effects, card.Effects...)
 	}
 	return effects
 }
 
-func (cards Cards) FindByName(name string) (ret []*Card) {
-	ret = []*Card{}
-	for _, card := range cards {
+func (cards *Cards) FindByName(name string) (ret CardList) {
+	ret = CardList{}
+	for _, card := range *cards {
 		if card.Name == name {
-			ret = append(ret, &card)
+			ret = append(ret, card)
 		}
-		/*if card.Name == name {
-			a:=&card
-			log.Println(a)
-			ret = append(ret, a)
-		}*/
 	}
 	return ret
 }
 
-func (cards Cards) FindByName2(name string) (ret []Card) {
-	for key, card := range cards {
+func (cards *Cards) FindByName2(name string) (ret CardList) {
+	_cards := *cards
+	for key, card := range _cards {
 		if card.Name == name {
-			c := cards[key]
+			c := _cards[key]
 			ret = append(ret, c)
 		}
 	}
 	return ret
 }
 
-func (cards Cards) GetByName(name string) *Card {
-	for key, card := range cards {
+func (cards *Cards) GetByName(name string) *Card {
+	for _, card := range *cards {
 		if card.Name == name {
-			c := cards[key]
-			return &c
+			return card
 		}
 	}
 	return nil
 }
 
-func (cards Cards) Has(card *Card) bool {
-	_, ok := cards[card.Id]
+func (cards *Cards) CountByName(name string) (count int) {
+	for _, card := range *cards {
+		if card.Name == name {
+			count += 1
+		}
+	}
+	return count
+}
+
+func (cards *Cards) Has(card *Card) bool {
+	_cards := *cards
+	_, ok := _cards[card.Id]
 	return ok
 }
 
-func (cards Cards) Reindex() Cards {
-	i := 0
+func (cards *Cards) Copy() Cards {
 	out := Cards{}
-	for key, card := range cards {
-		card.Id = i
-		c := cards[key]
-		out.Add(c)
-		i += 1
+	for key, value := range *cards {
+		out[key] = value
 	}
 	return out
 }
 
-func (cards Cards) String() string {
+func (cards *Cards) Reindex() *Cards {
+	backup := cards.Copy()
+	cards.Clear()
+
+	i := 0
+	for _, card := range backup {
+		card.Id = i
+		i += 1
+		cards.Add(card)
+	}
+	return cards
+}
+
+func (cards *Cards) String() string {
 	s := ""
-	for _, card := range cards {
+	for _, card := range *cards {
 		s += card.String() + "\n"
 	}
 	return s
 }
 
-func (cards Cards) List() []*Card {
-	l := make([]*Card, len(cards))
+func (cards *Cards) List() CardList {
+	l := make(CardList, len(*cards))
 	i := 0
-	for index, _ := range cards {
-		c := cards[index]
-		l[i] = &c
+	for _, card := range *cards {
+		l[i] = card
 		i += 1
 	}
 	return l
 }
 
-func (cards Cards) SetFaction(faction Faction) Cards {
-	for i, card := range cards {
+func (cards *Cards) SetFaction(faction Faction) *Cards {
+	_cards := *cards
+	for key, card := range _cards {
 		card.Faction = faction
-		cards[i] = card
+		_cards[key] = card
 	}
-	return cards
+	return &_cards
+}
+
+func (cards *Cards) Len() int {
+	return len(*cards)
 }
 
 /*type CardSlot enum
@@ -315,3 +334,17 @@ const (
 	SiegeRow
 	WeatherRow
 )*/
+
+type CardList []*Card
+
+/*
+Deep Copy
+*/
+func (in CardList) Copy() CardList {
+	out := make(CardList, len(in))
+	for i, cp := range in {
+		card := *cp
+		out[i] = &card
+	}
+	return out
+}
