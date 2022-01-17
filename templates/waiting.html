@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HTML5 Gwynt - Waiting Room</title>
+</head>
+<body>
+<p>You have created a game room, now you just need to wait for someone to join in.</p>
+
+<p>If you want to send someone a link, send this link <code id="link">/join/{{.Key}}</code></p>
+
+<a href="/waiting">Refresh</a>
+
+<script>
+    let elem = document.getElementById("link");
+    let url = document.location.origin + elem.innerText;
+    elem.innerText=url
+</script>
+</body>
+</html>

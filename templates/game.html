@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HTML5 Gwynt</title>
+    <style>
+        body {
+            color: white;
+        }
+
+        td.card {
+            background-color: burlywood;
+            padding: 0.5rem;
+            color: black;
+            min-width: 5rem;
+            height: 10rem;
+        }
+
+        img.card {
+            height: 12rem;
+            transition: 0.2s ease-in-out;
+            display: block;
+            margin: auto;
+            border-radius: 0.4rem;
+        }
+
+        img.card:hover {
+            transform: scale(1.7);
+        }
+
+        body {
+            background-color: saddlebrown;
+        }
+
+        tr.drag-dest {
+            height: 8rem;
+            background-color: #e5cdae;
+        }
+    </style>
+</head>
+
+<body>
+<h1>HTML5 Gwynt - game is running</h1>
+
+
+<table>
+    <tr>
+        <td>Enemy</td>
+        {{range .Enemy.Hand}}
+        <td class="card">
+            <img src="/static/{{.Picture}}" draggable="false" class="card"/>
+        </td>
+        {{end}}
+    </tr>
+    <tr>
+        <td>enemy</td>
+        {{range .Enemy.Hand}}
+        <td class="card">
+            <b>{{.DisplayName}}</b><br/>
+            <p>Strength: <b>{{.Strength}}</b></p>
+            <p>Row: <b>{{.Row}}</b></p>
+            {{if .Effects}}
+            Effects:
+            {{end }}
+            <ul>
+                {{range .Effects}}
+                <li>{{.}}</li>
+                {{end}}
+            </ul>
+        </td>
+        {{end}}
+    </tr>
+
+
+    <tr class="drag-dest CloseCombat Special"
+        ondragover="onDragOver(event)"
+        ondragenter="onDragEnter(event)"
+        ondragleave="onDragLeave(event)"
+        ondrop="dropCard(event)"
+        id="CloseCombat">
+
+        <td class="CloseCombat Special">Close Combat</td>
+        {{range .MySide.CloseCombat}}
+        <td class="card">
+            {{template "card" . }}
+        </td>
+        {{end}}
+    </tr>
+    <tr id="RangedCombat" class="drag-dest RangedCombat Special"
+        ondragover="onDragOver(event)"
+        ondragenter="onDragEnter(event)"
+        ondragleave="onDragLeave(event)"
+        ondrop="dropCard(event)">
+        <td class=" RangedCombat Special">Ranged Combat</td>
+        {{range .MySide.RangedCombat}}
+        <td class="card">
+            {{template "card" . }}
+        </td>
+        {{end}}
+    </tr>
+    <tr id="Siege" class="drag-dest Siege"
+        ondragover="onDragOver(event)"
+        ondragenter="onDragEnter(event)"
+        ondragleave="onDragLeave(event)"
+        ondrop="dropCard(event)">
+        <td class="Siege">Siege</td>
+        {{range .MySide.Siege}}
+        <td class="card">
+            {{template "card" . }}
+        </td>
+        {{end}}
+    </tr>
+    <br/>
+    <tr>
+        <td>Hand</td>
+        {{range .MySide.Hand}}
+        <td class="card">
+            <img src="/static/{{.Picture}}"
+                 class="card" id="card-{{.Id}}"
+                 draggable="true"
+                 ondragstart="startDragCard(event,'{{.Row}}')"
+                 ondragend="endDragCard(event,'{{.Row}}')"/>
+        </td>
+        {{end}}
+    </tr>
+    <tr>
+        <td>Hand</td>
+        {{range .MySide.Hand}}
+        <td class="card">
+            <b>{{.DisplayName}}</b><br/>
+            <p>Strength: <b>{{.Strength}}</b></p>
+            <p>Row: <b>{{.Row}}</b></p>
+            {{if .Effects}}
+            Effects:
+            {{end }}
+            <ul>
+                {{range .Effects}}
+                <li>{{.}}</li>
+                {{end}}
+            </ul>
+        </td>
+        {{end}}
+    </tr>
+</table>
+
+<script>
+    function startDragCard(event, row) {
+        // when the user starts to drag a card
+        event.dataTransfer.setData("id", event.target.id);
+        event.dataTransfer.setData("row", row);
+        event.dataTransfer.dropEffect = "move";
+        if (row !== 'Special') {
+            document.getElementById(row).style.background = "yellow";
+        }
+    }
+
+    function dropCard(event){
+        console.log(event)
+        event.preventDefault();
+        let target=event.target;
+        if (!target.classList.contains("drag-dest")){
+            target = event.target.parentElement;
+            console.log("parenting")
+        } else {
+            target = event.target;
+            console.log("direct")
+        }
+        target.style.background = "";
+        if (target.classList.contains(event.dataTransfer.getData("row"))) {
+            console.log("transferring")
+            let td = document.createElement('td');
+            td.className = "card";
+            let img = document.getElementById(event.dataTransfer.getData("id"))
+            img.draggable = false;
+            td.appendChild(img)
+            target.appendChild(td);
+            //target.appendChild(document.getElementById(event.dataTransfer.getData("id")))
+        }
+    }
+
+    function onDragOver(event) {
+        event.preventDefault();
+        //console.log(event)
+    }
+
+    function onDragEnter(event) {
+        //when a dragged card arrives on top of a DnD target
+        ////event.target.classList.add("dragover") marche pas
+        if (event.target.classList.contains(event.dataTransfer.getData("row")) ) {
+            event.target.style.background = "green"
+        } else {
+            event.target.style.background = "red"
+        }
+
+    }
+
+    function onDragLeave(event) {
+        //when a dragged card leaves a DnD target
+        ////event.target.classList.remove("dragover") marche pas
+        try {
+            event.target.style.background = ""
+        } catch (e){
+
+        }
+
+    }
+
+    function endDragCard(event, row) {
+        // when the user starts to drag a card
+        if (row !== 'Special') {
+            console.log(row)
+            document.getElementById(row).style.background = "";
+        }
+    }
+</script>
+</body>
+</html>
+
+{{define "card" }}
+<img src="/static/{{.Picture}}" class="card"/>
+<b>{{.DisplayName}}</b><br/>
+<p>Strength: <b>{{.Strength}}</b></p>
+<p>Row: <b>{{.Row}}</b></p>
+{{if .Effects}}
+Effects:
+{{end }}
+<ul>
+    {{range .Effects}}
+    <li>{{.}}</li>
+    {{end}}
+</ul>
+{{end}}

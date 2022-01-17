@@ -58,8 +58,7 @@ func (player *GameSide) GetRow(row Row) *Cards {
 }
 
 func (player *GameSide) Merge() CardList {
-	arr := make(CardList,
-		len(*player.CloseCombat)+len(*player.RangedCombat)+len(*player.Siege))
+	arr := CardList{}
 	for _, card := range *player.CloseCombat {
 		arr = append(arr, card)
 	}
@@ -123,4 +122,47 @@ func (gs *GameSide) String() string {
 func (g *Game) String() string {
 	return fmt.Sprintf("Side A\n%s===========\nWeather: %s\n==========\nSide B\n%s",
 		g.SideA, g.WeatherCards, g.SideB)
+}
+
+func (g *Game) Check() bool {
+	return g.SideA.Check() && g.SideB.Check()
+}
+func (gs *GameSide) Check() bool {
+	return gs.Heap.CheckIds() &&
+		gs.Hand.CheckIds() &&
+		gs.Deck.CheckIds() &&
+		gs.Siege.CheckIds() &&
+		gs.RangedCombat.CheckIds() &&
+		gs.CloseCombat.CheckIds()
+}
+
+func (g *Game) Score() (a int, b int) {
+	eff := g.WeatherCards.Effects()
+	return g.SideA.Score(eff), g.SideB.Score(eff)
+}
+func (g *Game) ScoreA() int {
+	return g.SideA.Score(g.WeatherCards.Effects())
+}
+func (g *Game) ScoreB() int {
+	return g.SideB.Score(g.WeatherCards.Effects())
+}
+
+/*
+Ensures that all the IDs in that game are unique, so there are no clashed with Spies and weather cards
+*/
+func (g *Game) Sort() int {
+	index := g.SideA.Hand.SortKeys(0)
+	index = g.SideA.Deck.SortKeys(index)
+	index = g.SideA.CloseCombat.SortKeys(index)
+	index = g.SideA.RangedCombat.SortKeys(index)
+	index = g.SideA.Siege.SortKeys(index)
+
+	index = g.WeatherCards.SortKeys(index)
+
+	index = g.SideB.Hand.SortKeys(index)
+	index = g.SideB.Deck.SortKeys(index)
+	index = g.SideB.CloseCombat.SortKeys(index)
+	index = g.SideB.RangedCombat.SortKeys(index)
+	index = g.SideB.Siege.SortKeys(index)
+	return index
 }

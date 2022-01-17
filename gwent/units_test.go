@@ -1,6 +1,9 @@
 package gwent
 
-import "testing"
+import (
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
 
 func genHand() *Cards {
 	return ToCards(CardList{
@@ -104,4 +107,9 @@ func TestCards_Copy(t *testing.T) {
 		t.Fatal("shallow copy")
 	}
 
+}
+
+func TestEffects_Has(t *testing.T) {
+	card := AllCardsMap["biting-frost"]
+	assert.True(t, card.Effects.Has(BitingFrost))
 }

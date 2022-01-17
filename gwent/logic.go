@@ -1,7 +1,6 @@
 package gwent
 
 import (
-	"log"
 	"math/rand"
 )
 
@@ -41,10 +40,7 @@ func (game *Game) PlayMove(card *Card, slotRow Row, player *GameSide, enemy *Gam
 		}
 		if card.Effects.Has(Muster) {
 			//find others in deck
-			/*buddies := player.Deck.FindByName(card.Name)
-			buddies = append(buddies, player.Hand.FindByName(card.Name)...)*/
-			buddies := player.Hand.FindByName(card.Name)
-			log.Print("muster buddies of", card.Name, ";", buddies)
+			buddies := append(player.Hand.FindByName(card.Name), player.Deck.FindByName(card.Name)...)
 			MoveCards(player.Deck, row, buddies)
 		}
 	}
@@ -87,9 +83,11 @@ func (hand *Cards) Draw(deck *Cards) *Card {
 	panic(nil)
 }
 
-func InitDeck(cards []Card, faction Faction) *Cards {
+func InitDeck(all *[]Card, faction Faction) *Cards {
 	deck := &Cards{}
-	for id, card := range cards {
+	_all := *all
+	for id, _ := range _all {
+		card := _all[id]
 		if card.Faction == faction || card.Faction == Neutral {
 			card.Id = id
 			card.Faction = faction
@@ -124,7 +122,10 @@ func (row Cards) Score(weatherDebuff bool) (sum int) {
 	}
 
 	for _, card := range tightBonded {
-		card.score *= tightBonds.Get(card)
+		/*card.score *= tightBonds.Get(card)*/
+		if tightBonds.Get(card) >= 2 {
+			card.score *= 2
+		}
 	}
 	sum = 0
 	for _, card := range row {
@@ -134,7 +135,7 @@ func (row Cards) Score(weatherDebuff bool) (sum int) {
 }
 
 func (card *Card) Score(weatherDebuff bool, moraleBoost bool, hornBoost bool) (score int) {
-	score = card.Strengh
+	score = card.Strength
 	if card.Effects.Has(Hero) {
 		return
 	}
@@ -147,6 +148,7 @@ func (card *Card) Score(weatherDebuff bool, moraleBoost bool, hornBoost bool) (s
 	if moraleBoost {
 		score += 1
 	}
+	//log.Printf("score:%d for card %s", score, card)
 	return
 }
 
@@ -167,7 +169,7 @@ func (game *Game) Scorch() {
 	}
 	for _, card := range cards {
 		if card.score == maxScore {
-			card.Strengh = 0
+			card.Strength = 0
 			card.score = -1
 		}
 	}

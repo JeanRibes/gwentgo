@@ -1,8 +1,11 @@
 package gwent
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"log"
+	"strings"
 )
 
 type enum uint
@@ -19,10 +22,17 @@ const (
 	Neutral
 )
 
+func (faction Faction) MarshalJSON() ([]byte, error) {
+	buffer := bytes.NewBufferString(`"`)
+	buffer.WriteString(faction.String())
+	buffer.WriteString(`"`)
+	return buffer.Bytes(), nil
+}
+
 func (faction Faction) String() string {
 	switch faction {
 	case NorthernRealms:
-		return "Northern Realms"
+		return "NorthernRealms"
 	case ScoiaTael:
 		return "ScoiaTael"
 	case Nilfgaard:
@@ -32,6 +42,29 @@ func (faction Faction) String() string {
 	default:
 		return "Default"
 	}
+}
+func FactionFromString(str string) (Faction, error) {
+	switch str {
+	case "NorthernRealms":
+		return NorthernRealms, nil
+	case "Northern Realms":
+		return NorthernRealms, nil
+	case "ScoiaTael":
+		return ScoiaTael, nil
+	case "Nilfgaard":
+		return Nilfgaard, nil
+	case "Monsters":
+		return Monsters, nil
+	default:
+		println("faction not found", str)
+		return 0, errors.New("invalid faction: " + str)
+	}
+	return 0, errors.New("eerr ??")
+}
+func (faction *Faction) UnmarshalJSON(data []byte) (err error) {
+	str := string(data)
+	*faction, err = FactionFromString(str[1 : len(str)-1]) //remove quotes
+	return err
 }
 
 type Row enum
@@ -46,7 +79,6 @@ const (
 
 func (row Row) String() string {
 	switch row {
-
 	case CloseCombat:
 		return "CloseCombat"
 	case RangedCombat:
@@ -62,6 +94,39 @@ func (row Row) String() string {
 	}
 }
 
+func (row Row) MarshalJSON() ([]byte, error) {
+	buffer := bytes.NewBufferString(`"`)
+	buffer.WriteString(row.String())
+	buffer.WriteString(`"`)
+	return buffer.Bytes(), nil
+}
+
+func RowFromString(str string) Row {
+	switch str {
+	case "CloseCombat":
+		return CloseCombat
+	case "RangedCombat":
+		return RangedCombat
+	case "Siege":
+		return Siege
+	case "Weather":
+		return Weather
+	case "Special":
+		return Special
+	default:
+		return 99
+	}
+}
+
+func (row *Row) UnmarshalJSON(data []byte) (err error) {
+	str := string(data)
+	*row = RowFromString(str[1 : len(str)-1])
+	if *row == 99 {
+		return errors.New("invalid Row")
+	}
+	return nil
+}
+
 type Effect enum
 
 const (
@@ -74,7 +139,7 @@ const (
 	Spy
 	TightBond
 	// neutral cards
-	/*Decoy*/
+	Decoy
 	Scorch
 	// weather
 	ClearWeather
@@ -112,23 +177,35 @@ type Card struct {
 	Row         Row
 	Name        string
 	DisplayName string
-	Strengh     int
+	Image       string
+	Strength    int
 	Effects     Effects
 	score       int //cached score
 }
 
+func (card *Card) Picture() string {
+	if card.Image != "" {
+		return card.Image
+	} else {
+		picture := strings.Replace(card.DisplayName, " ", "-", -1)
+		picture = strings.Replace(picture, "’", "", -1)
+		picture = strings.Replace(picture, "*", "u", -1)
+		return picture + "-gwent-card.jpg"
+	}
+}
+
 func (card *Card) String() string {
-	return fmt.Sprintf("#%d [%s][%s] %s (%d) {%s}",
+	return fmt.Sprintf("#%d [%s][%s] %s (%d->%d) {%s}",
 		card.Id,
 		card.Faction,
 		card.Row,
 		card.Name,
-		card.Strengh,
+		card.Strength,
+		card.score,
 		card.Effects)
 }
 
 func (eff Effect) String() string {
-
 	switch eff {
 	case Agile:
 		return "Agile"
@@ -160,7 +237,12 @@ func (eff Effect) String() string {
 		return "error!"
 	}
 }
-
+func (eff Effect) MarshalJSON() ([]byte, error) {
+	buffer := bytes.NewBufferString(`"`)
+	buffer.WriteString(eff.String())
+	buffer.WriteString(`"`)
+	return buffer.Bytes(), nil
+}
 func (eff Effects) String() string {
 	s := ""
 	if len(eff) == 0 {
@@ -170,6 +252,43 @@ func (eff Effects) String() string {
 		s += effect.String() + ","
 	}
 	return s
+}
+func EffectFromString(effect string) (Effect, error) {
+	switch effect {
+	case "Agile":
+		return Agile, nil
+	case "CommanderHorn":
+		return CommanderHorn, nil
+	case "Hero":
+		return Hero, nil
+	case "Medic":
+		return Medic, nil
+	case "MoraleBoost":
+		return MoraleBoost, nil
+	case "Muster":
+		return Muster, nil
+	case "Spy":
+		return Spy, nil
+	case "TightBond":
+		return TightBond, nil
+	case "Scorch":
+		return Scorch, nil
+	case "ClearWeather":
+		return ClearWeather, nil
+	case "BitingFrost":
+		return BitingFrost, nil
+	case "ImpenetrableFog":
+		return ImpenetrableFog, nil
+	case "TorrentialRain":
+		return TorrentialRain, nil
+	default:
+		return 0, errors.New("invalid effect")
+	}
+}
+func (effect *Effect) UnmarshalJSON(data []byte) (err error) {
+	str := string(data)
+	*effect, err = EffectFromString(str[1 : len(str)-1])
+	return err
 }
 
 type Cards map[int]*Card
@@ -194,13 +313,14 @@ func (cards *Cards) Add(card *Card) *Cards {
 	return cards
 }
 
-func (cards *Cards) CheckIds() *Cards {
+func (cards *Cards) CheckIds() bool {
 	for i, card := range *cards {
 		if i != card.Id {
-			log.Printf("ID clash: #%d should be %s", i, card)
+			log.Panicf("ID clash: #%d should be %s", i, card)
+			return false
 		}
 	}
-	return cards
+	return true
 }
 
 func (cards *Cards) Adds(news CardList) *Cards {
@@ -295,6 +415,19 @@ func (cards *Cards) Reindex() *Cards {
 	return cards
 }
 
+func (cards *Cards) SortKeys(start int) int {
+	backup := cards.Copy()
+	cards.Clear()
+
+	i := start
+	for _, card := range backup {
+		card.Id = i
+		i += 1
+		cards.Add(card)
+	}
+	return i
+}
+
 func (cards *Cards) String() string {
 	s := ""
 	for _, card := range *cards {
@@ -347,4 +480,15 @@ func (in CardList) Copy() CardList {
 		out[i] = &card
 	}
 	return out
+}
+func (list CardList) String() string {
+	s := ""
+	for _, card := range list {
+		if card != nil {
+			s += card.String() + "\n"
+		} else {
+			s += "<nil>\n"
+		}
+	}
+	return s
 }

@@ -1,44 +1,20 @@
 package gwent
 
-import "testing"
+import (
+	"encoding/json"
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
+
+func Lol() {
+
+}
 
 func TestGame(t *testing.T) {
-
-	deckP2 := InitDeck(AllCards, ScoiaTael).Reindex()
-	handP2 := ToCards(CardList{
-		AllCardsMap["saesenthessis"],
-		AllCardsMap["isengrim-faoiltiarna"],
-		AllCardsMap["filavandrel"],
-		AllCardsMap["yaevinn"],
-		AllCardsMap["dwarf-skirmisher"],
-		AllCardsMap["dwarf-skirmisher"],
-		AllCardsMap["dwarf-skirmisher"],
-		AllCardsMap["havekar-healer"],
-		AllCardsMap["scorch"],
-		AllCardsMap["torrential-rain"],
-	}.Copy()).SetFaction(ScoiaTael).Reindex()
-
-	deckP1 := InitDeck(AllCards, NorthernRealms).Reindex()
-
-	handP1 := ToCards(CardList{
-		&AllCards[0],  // #0 [Northern Realms][CloseCombat] Blue Stripes Commando (4) {TightBond,}
-		&AllCards[1],  // #2 [Northern Realms][CloseCombat] Cirilla Fiona Elen Riannon (15) {Hero,}
-		&AllCards[3],  // #3 [Northern Realms][Weather] Clear Weather (0) {ClearWeather,}
-		&AllCards[9],  // #4 [Northern Realms][CloseCombat] Avallac’h (0) {Spy,Hero,}
-		&AllCards[32], // #5 [Northern Realms][Siege] Thaler (1) {Spy,}
-		&AllCards[25], // #7 [Northern Realms][CloseCombat] Blue Stripes Commando (4) {TightBond,}
-		&AllCards[45], // #1 [Northern Realms][CloseCombat] Blue Stripes Commando (4) {TightBond,}
-		&AllCards[62], // #6 [Northern Realms][CloseCombat] Poor F*cking Infantry (1) {TightBond,}
-		&AllCards[62], // #8 [Northern Realms][CloseCombat] Geralt of Rivia (15) {Hero,}
-		&AllCards[62], // #9 [Northern Realms][RangedCombat] Yennefer of Vengerberg (7) {Medic,Hero,}
-	}.Copy()).Reindex().SetFaction(NorthernRealms)
-
-	//t.Log("deck P2", deckP2)
-
-	game := NewGame(deckP1, handP1, deckP2, handP2)
-	deckP1, handP1, deckP2, handP2 = nil, nil, nil, nil
-	/*deckP2.CheckIds()
-	handP2.CheckIds()*/
+	game := Creategame()
+	cardscount := game.Sort()
+	assert.Greaterf(t, cardscount, 0, "bad game sorting")
+	t.Logf("%d cards in that game", cardscount)
 
 	first := game.SideA.Hand.GetByName("geralt-of-rivia")
 	//t.Log("first move:", first)
@@ -61,8 +37,50 @@ func TestGame(t *testing.T) {
 
 	game.PlayMove(second, second.Row, game.SideB, game.SideA)
 	if game.SideB.CloseCombat.Len() != 3 {
+		t.Log(game)
 		t.Fatal("Muster didn't work")
 	}
 	//t.Log(game)
 
+	data, err := json.Marshal(game)
+	assert.NoError(t, err, "marshel json")
+	assert.NotZero(t, len(data))
+	//t.Log(string(data))
+
+	assert.Truef(t, game.Check(), "game init check")
+	assert.Equal(t, game.ScoreA(), 15)
+	assert.Equal(t, game.SideA.CloseCombat.GetByName("geralt-of-rivia").score, 15)
+	assert.Equal(t, game.ScoreB(), 9)
+
+	troiseiem := game.SideA.Hand.GetByName("blue-stripes-commando")
+	game.PlayMove(troiseiem, troiseiem.Row, game.SideA, game.SideB)
+
+	merged := game.Merge()
+	assert.Equal(t, len(merged), 5)
+
+	quatrieeme := game.SideB.Hand.GetByName("scorch")
+	game.PlayMove(quatrieeme, quatrieeme.Row, game.SideB, game.SideA)
+	assert.Equal(t, game.ScoreA(), 4)
+
+	cinquieme := game.SideA.Hand.GetByName("blue-stripes-commando")
+	game.PlayMove(cinquieme, cinquieme.Row, game.SideA, game.SideB)
+	assert.Equal(t, game.ScoreA(), 16)
+
+	sixieme := game.SideB.Hand.GetByName("biting-frost")
+	game.PlayMove(sixieme, Weather, game.SideB, game.SideA)
+
+	assert.Truef(t, game.WeatherCards.Effects().Has(BitingFrost), "no biting frost")
+
+	assert.Equal(t, game.ScoreA(), 4)
+	assert.Equal(t, game.ScoreB(), 3)
+
+	septieme := game.SideA.Hand.GetByName(AllCards[9].Name)
+	assert.Equal(t, game.SideA.Hand.Len(), 7)
+	game.PlayMove(septieme, septieme.Row, game.SideA, game.SideB)
+	assert.Equal(t, game.SideA.Hand.Len(), 8)
+	assert.Equal(t, game.ScoreB(), 3)
+
+	huitieme := game.SideB.Hand.GetByName("saesenthessis")
+	game.PlayMove(huitieme, RangedCombat, game.SideB, game.SideA)
+	assert.Equal(t, game.ScoreB(), 13)
 }
