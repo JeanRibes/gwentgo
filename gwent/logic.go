@@ -1,49 +1,66 @@
 package gwent
 
 import (
+	"log"
 	"math/rand"
 )
 
-func (game *Game) PlayMove(card *Card, slotRow Row, player *GameSide, enemy *GameSide) {
-	if CheckMove(card, slotRow, player, enemy, game.WeatherCards) {
+func (game *Game) PlayMove(
+	card *Card,
+	slotRow Row,
+	player *GameSide,
+	enemy *GameSide) bool { // boolean: indicates if there is a "medic" choice
+	if player.Hand.Has(card) {
+
 		game.WeatherClean() //needed at the beginning, otherwise debuff may apply in presence of the Clear weather
 
-		if card.Effects.Has(Scorch) {
-			game.Scorch()
-			return
-		}
+		if CheckMove(card, slotRow, player, enemy, game.WeatherCards) {
+			var row *Cards
 
-		var row *Cards
-
-		if slotRow == Weather {
-			row = game.WeatherCards
-		} else {
-			if card.Effects.Has(Spy) {
-				row = enemy.GetRow(slotRow)
+			if slotRow == Weather {
+				row = game.WeatherCards
 			} else {
-				row = player.GetRow(slotRow)
+				if card.Effects.Has(Spy) {
+					row = enemy.GetRow(slotRow)
+				} else {
+					row = player.GetRow(slotRow)
+				}
 			}
-		}
-		MoveCard(player.Hand, row, card)
+			MoveCard(player.Hand, row, card)
 
-		/*post-move*/
-		if card.Effects.Has(Spy) {
-			player.Hand.Draw(player.Deck)
-			player.Hand.Draw(player.Deck)
-			//draw 2 from deck
-		}
-		if card.Effects.Has(Medic) {
-			//draw from heap
-			if player.Heap.Len() > 0 {
-				player.Hand.Draw(player.Heap)
+			/*post-move*/
+			if card.Effects.Has(Spy) {
+				player.Hand.Draw(player.Deck)
+				player.Hand.Draw(player.Deck)
+				//draw 2 from deck
+			}
+			if card.Effects.Has(Medic) {
+				//draw from heap
+				if player.Heap.Len() > 0 {
+					//player.Hand.Draw(player.Heap)
+					return true
+				}
+			}
+			if card.Effects.Has(Muster) {
+				//find others in deck
+				MoveCards(player.Hand, row, player.Hand.FindByName(card.Name))
+				MoveCards(player.Deck, row, player.Deck.FindByName(card.Name))
 			}
 		}
-		if card.Effects.Has(Muster) {
-			//find others in deck
-			buddies := append(player.Hand.FindByName(card.Name), player.Deck.FindByName(card.Name)...)
-			MoveCards(player.Deck, row, buddies)
+		game.Score()
+
+		if card.Effects.Has(Scorch) {
+			if card.Row == Special { //Scorch card
+				game.Scorch()
+			} else { //Villentremerth: destroys the opponent in its row
+				enemy.ScorchAlt(card)
+			}
+			MoveCard(player.Hand, player.Heap, card)
+			enemy.Score(game.WeatherCards.Effects())
 		}
+		game.Switch()
 	}
+	return false
 }
 
 func CheckMove(
@@ -60,7 +77,7 @@ func CheckMove(
 			return false
 		}
 	}
-	return player.Hand.Has(card)
+	return true
 }
 
 func InitHand(deck *Cards) (hand *Cards) {
@@ -98,11 +115,10 @@ func InitDeck(all *[]Card, faction Faction) *Cards {
 }
 
 func (player *GameSide) Score(weather Effects) (sum int) {
-	sum = 0
-	sum += player.CloseCombat.Score(weather.Has(BitingFrost))
-	sum += player.RangedCombat.Score(weather.Has(ImpenetrableFog))
-	sum += player.Siege.Score(weather.Has(TorrentialRain))
-	return sum
+	player.ScoreCloseCombat = player.CloseCombat.Score(weather.Has(BitingFrost))
+	player.ScoreRangedCombat = player.RangedCombat.Score(weather.Has(ImpenetrableFog))
+	player.ScoreSiege = player.Siege.Score(weather.Has(TorrentialRain))
+	return player.ScoreCloseCombat + player.ScoreRangedCombat + player.ScoreSiege
 }
 
 func (row Cards) Score(weatherDebuff bool) (sum int) {
@@ -171,7 +187,35 @@ func (game *Game) Scorch() {
 		if card.score == maxScore {
 			card.Strength = 0
 			card.score = -1
+			log.Print("scorched", card)
 		}
 	}
 	game.Clean() // deletes the scorched cards
+}
+
+func (gs *GameSide) ScorchAlt(card *Card) {
+	rowToScorch := gs.GetRow(card.Row)
+	maxScore := 0
+	for _, enemy_card := range *rowToScorch {
+		if enemy_card.score > maxScore {
+			maxScore = enemy_card.score
+		}
+	}
+	for _, enemy_card := range *rowToScorch {
+		if enemy_card.score == maxScore {
+			MoveCard(rowToScorch, gs.Heap, enemy_card)
+		}
+	}
+}
+
+func (card *Card) EligibleMedic() bool {
+	for _, eff := range card.Effects {
+		if eff == Hero ||
+			eff == Decoy ||
+			eff == CommanderHorn ||
+			eff == Scorch {
+			return false
+		}
+	}
+	return true
 }

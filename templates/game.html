@@ -6,26 +6,59 @@
     <style>
         body {
             color: white;
-        }
-
-        td.card {
-            background-color: burlywood;
-            padding: 0.5rem;
-            color: black;
-            min-width: 5rem;
-            height: 10rem;
+            --card-height: 5.5rem;
+            --card-width: 4.5rem;
         }
 
         img.card {
-            height: 12rem;
-            transition: 0.2s ease-in-out;
             display: block;
             margin: auto;
             border-radius: 0.4rem;
+            height: var(--card-height);
+            width: var(--card-width);
+            object-fit: cover;
+            object-position: 0 0;
         }
 
-        img.card:hover {
-            transform: scale(1.7);
+        figure.card {
+            transition: 0.2s ease-in-out;
+            margin: 0;
+            padding: 0;
+            width: var(--card-width);
+            height: var(--card-height);
+        }
+
+        figcaption.card {
+            display: block;
+            position: fixed;
+            right: 0;
+            top: 10vh;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 0.5rem;
+            background-color: black;
+            color: white;
+            width: 20rem;
+            box-shadow: 5px 5px 10px black, -5px -5px 10px black;
+
+            opacity: 0;
+        }
+
+        figure.card:hover > img.card {
+            transform: scale(2);
+            transition: .2s ease-in-out;
+            height: unset;
+            z-index: 1;
+        }
+        /*td.card:nth-child(2) > figure.card > img.card {
+            z-index: 1;
+            height: unset;
+        }*/
+
+        figure.card:hover > figcaption.card {
+            opacity: 100%;
+            transition: 0.2s ease-in-out;
+            z-index: 2;
         }
 
         body {
@@ -33,160 +66,85 @@
         }
 
         tr.drag-dest {
-            height: 8rem;
+
+            max-height: var(--card-height);
+        }
+        td.drag-indicator {
             background-color: #e5cdae;
+            height: var(--card-height);
+        }
+        #gametable > *{
+            display: inline-block;
+            vertical-align: top;
         }
     </style>
 </head>
 
 <body>
-<h1>HTML5 Gwynt - game is running</h1>
+<a href="/demo">refresh</a>
 
+{{template "table.html" .}}
 
-<table>
-    <tr>
-        <td>Enemy</td>
-        {{range .Enemy.Hand}}
-        <td class="card">
-            <img src="/static/{{.Picture}}" draggable="false" class="card"/>
-        </td>
-        {{end}}
-    </tr>
-    <tr>
-        <td>enemy</td>
-        {{range .Enemy.Hand}}
-        <td class="card">
-            <b>{{.DisplayName}}</b><br/>
-            <p>Strength: <b>{{.Strength}}</b></p>
-            <p>Row: <b>{{.Row}}</b></p>
-            {{if .Effects}}
-            Effects:
-            {{end }}
-            <ul>
-                {{range .Effects}}
-                <li>{{.}}</li>
-                {{end}}
-            </ul>
-        </td>
-        {{end}}
-    </tr>
+<form id="form-play-move" action="{{.Url}}" method="post">
+    <label for="card-id">Card ID to play</label>
+    <input name="id" id="card-id" type="number">
 
-
-    <tr class="drag-dest CloseCombat Special"
-        ondragover="onDragOver(event)"
-        ondragenter="onDragEnter(event)"
-        ondragleave="onDragLeave(event)"
-        ondrop="dropCard(event)"
-        id="CloseCombat">
-
-        <td class="CloseCombat Special">Close Combat</td>
-        {{range .MySide.CloseCombat}}
-        <td class="card">
-            {{template "card" . }}
-        </td>
-        {{end}}
-    </tr>
-    <tr id="RangedCombat" class="drag-dest RangedCombat Special"
-        ondragover="onDragOver(event)"
-        ondragenter="onDragEnter(event)"
-        ondragleave="onDragLeave(event)"
-        ondrop="dropCard(event)">
-        <td class=" RangedCombat Special">Ranged Combat</td>
-        {{range .MySide.RangedCombat}}
-        <td class="card">
-            {{template "card" . }}
-        </td>
-        {{end}}
-    </tr>
-    <tr id="Siege" class="drag-dest Siege"
-        ondragover="onDragOver(event)"
-        ondragenter="onDragEnter(event)"
-        ondragleave="onDragLeave(event)"
-        ondrop="dropCard(event)">
-        <td class="Siege">Siege</td>
-        {{range .MySide.Siege}}
-        <td class="card">
-            {{template "card" . }}
-        </td>
-        {{end}}
-    </tr>
-    <br/>
-    <tr>
-        <td>Hand</td>
-        {{range .MySide.Hand}}
-        <td class="card">
-            <img src="/static/{{.Picture}}"
-                 class="card" id="card-{{.Id}}"
-                 draggable="true"
-                 ondragstart="startDragCard(event,'{{.Row}}')"
-                 ondragend="endDragCard(event,'{{.Row}}')"/>
-        </td>
-        {{end}}
-    </tr>
-    <tr>
-        <td>Hand</td>
-        {{range .MySide.Hand}}
-        <td class="card">
-            <b>{{.DisplayName}}</b><br/>
-            <p>Strength: <b>{{.Strength}}</b></p>
-            <p>Row: <b>{{.Row}}</b></p>
-            {{if .Effects}}
-            Effects:
-            {{end }}
-            <ul>
-                {{range .Effects}}
-                <li>{{.}}</li>
-                {{end}}
-            </ul>
-        </td>
-        {{end}}
-    </tr>
-</table>
-
+    <label for="card-row">Row to play card (CloseCombat, RangedCombat, Siege)</label>
+    <input name="row" id="card-row" type="text">
+    <button id="form-play-submit" type="submit">Play</button>
+</form>
+</body>
 <script>
-    function startDragCard(event, row) {
+    function startDragCard(event, row, cardid) {
+        let target = event.target
+        if (!target.classList.contains('draggable')){
+            target = target.parentNode;
+        }
         // when the user starts to drag a card
-        event.dataTransfer.setData("id", event.target.id);
+        event.dataTransfer.setData("id", target.id);
         event.dataTransfer.setData("row", row);
+        event.dataTransfer.setData("cardid", cardid);
         event.dataTransfer.dropEffect = "move";
         if (row !== 'Special') {
             document.getElementById(row).style.background = "yellow";
+        } else {
+            document.getElementById('CloseCombat').style.background = "yellow";
+            document.getElementById('RangedCombat').style.background = "yellow";
         }
     }
 
-    function dropCard(event){
-        console.log(event)
+    function dropCard(event) {
         event.preventDefault();
-        let target=event.target;
-        if (!target.classList.contains("drag-dest")){
+        event.target.style.background = "";
+        let target = event.target;
+        if (!target.classList.contains("drag-dest")) {
             target = event.target.parentElement;
-            console.log("parenting")
         } else {
             target = event.target;
-            console.log("direct")
         }
-        target.style.background = "";
         if (target.classList.contains(event.dataTransfer.getData("row"))) {
-            console.log("transferring")
             let td = document.createElement('td');
             td.className = "card";
-            let img = document.getElementById(event.dataTransfer.getData("id"))
-            img.draggable = false;
-            td.appendChild(img)
+            let fig = document.getElementById(event.dataTransfer.getData("id"))
+            fig.draggable = false;
+            fig.childNodes.forEach((child)=>{child.draggable=false})
+            fig.classList.remove('draggable')
+            td.appendChild(fig)
             target.appendChild(td);
             //target.appendChild(document.getElementById(event.dataTransfer.getData("id")))
+            let target_row = target.id;
+            playMove(event.dataTransfer.getData("cardid"),target_row)
         }
     }
 
     function onDragOver(event) {
         event.preventDefault();
-        //console.log(event)
     }
 
     function onDragEnter(event) {
         //when a dragged card arrives on top of a DnD target
         ////event.target.classList.add("dragover") marche pas
-        if (event.target.classList.contains(event.dataTransfer.getData("row")) ) {
+        if (event.target.classList.contains(event.dataTransfer.getData("row"))) {
             event.target.style.background = "green"
         } else {
             event.target.style.background = "red"
@@ -199,7 +157,7 @@
         ////event.target.classList.remove("dragover") marche pas
         try {
             event.target.style.background = ""
-        } catch (e){
+        } catch (e) {
 
         }
 
@@ -208,25 +166,25 @@
     function endDragCard(event, row) {
         // when the user starts to drag a card
         if (row !== 'Special') {
-            console.log(row)
-            document.getElementById(row).style.background = "";
+            let elem = document.getElementById(row);
+            if (elem !== null || elem !== undefined) {
+                elem.style.background = "";
+            }
         }
     }
+    function playMove(id,row){
+        console.log("move: ",id,row)
+        document.getElementById('card-row').value = row;
+        document.getElementById('card-id').value = id;
+        //document.getElementById("form-play-submit").click()
+        htmx.ajax('POST', '{{.Url}}', {
+            target: '#gametable',
+            values: {
+                "row":row,
+                "id":id,
+            }
+        })
+    }
 </script>
-</body>
+<script src="https://unpkg.com/htmx.org@1.6.1"></script>
 </html>
-
-{{define "card" }}
-<img src="/static/{{.Picture}}" class="card"/>
-<b>{{.DisplayName}}</b><br/>
-<p>Strength: <b>{{.Strength}}</b></p>
-<p>Row: <b>{{.Row}}</b></p>
-{{if .Effects}}
-Effects:
-{{end }}
-<ul>
-    {{range .Effects}}
-    <li>{{.}}</li>
-    {{end}}
-</ul>
-{{end}}

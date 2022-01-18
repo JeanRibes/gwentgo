@@ -7,11 +7,15 @@ type GameSide struct {
 	Deck *Cards //the rest of the cards, that may be used with spies
 	Heap *Cards //discarded cards, that may come back to hand with Medics
 
-	CloseCombat *Cards
-
+	CloseCombat  *Cards
 	RangedCombat *Cards
+	Siege        *Cards
 
-	Siege *Cards
+	ScoreCloseCombat  int
+	ScoreRangedCombat int
+	ScoreSiege        int
+
+	Passed bool
 }
 
 func NewGameSide(deck *Cards, hand *Cards) *GameSide {
@@ -22,6 +26,7 @@ func NewGameSide(deck *Cards, hand *Cards) *GameSide {
 		CloseCombat:  &Cards{},
 		RangedCombat: &Cards{},
 		Siege:        &Cards{},
+		Passed:       false,
 	}
 }
 
@@ -29,6 +34,10 @@ type Game struct {
 	WeatherCards *Cards
 	SideA        *GameSide
 	SideB        *GameSide
+
+	Turn    Turn
+	Round   int //0,1,2
+	History []Turn
 }
 
 func NewGame(
@@ -41,6 +50,8 @@ func NewGame(
 		WeatherCards: &Cards{},
 		SideA:        NewGameSide(deckA, handA),
 		SideB:        NewGameSide(deckB, handB),
+		History:      make([]Turn, 3),
+		Turn:         PlayerA,
 	}
 }
 
@@ -165,4 +176,61 @@ func (g *Game) Sort() int {
 	index = g.SideB.RangedCombat.SortKeys(index)
 	index = g.SideB.Siege.SortKeys(index)
 	return index
+}
+
+func (g *Game) GetCardById(id int) *Card {
+	if card := g.SideA.GetCardById(id); card != nil {
+		return card
+	}
+	if card := g.SideB.GetCardById(id); card != nil {
+		return card
+	}
+	return nil
+}
+
+func (gs *GameSide) GetCardById(id int) *Card {
+	if card := gs.Hand.GetById(id); card != nil {
+		return card
+	}
+	if card := gs.Heap.GetById(id); card != nil {
+		return card
+	}
+	if card := gs.CloseCombat.GetById(id); card != nil {
+		return card
+	}
+	if card := gs.RangedCombat.GetById(id); card != nil {
+		return card
+	}
+	if card := gs.Siege.GetById(id); card != nil {
+		return card
+	}
+	return nil
+}
+
+func (g *Game) Player() *GameSide {
+	if g.Turn == PlayerA {
+		return g.SideA
+	}
+	if g.Turn == PlayerB {
+		return g.SideB
+	}
+	return nil
+}
+func (g *Game) Enemy() *GameSide {
+	if g.Turn == PlayerA {
+		return g.SideB
+	}
+	if g.Turn == PlayerB {
+		return g.SideA
+	}
+	return nil
+}
+func (g *Game) Switch() *Game {
+	if g.Turn == PlayerA {
+		g.Turn = PlayerB
+	}
+	if g.Turn == PlayerB {
+		g.Turn = PlayerA
+	}
+	return g
 }

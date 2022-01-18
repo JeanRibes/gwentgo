@@ -240,7 +240,7 @@ func (eff Effect) String() string {
 func (eff Effect) MarshalJSON() ([]byte, error) {
 	buffer := bytes.NewBufferString(`"`)
 	buffer.WriteString(eff.String())
-	buffer.WriteString(`"`)
+	buffer.WriteRune('"')
 	return buffer.Bytes(), nil
 }
 func (eff Effects) String() string {
@@ -294,8 +294,8 @@ func (effect *Effect) UnmarshalJSON(data []byte) (err error) {
 type Cards map[int]*Card
 
 func MoveCard(source *Cards, dest *Cards, card *Card) {
-	source.Remove(card)
 	dest.Add(card)
+	source.Remove(card)
 }
 func MoveCards(source *Cards, dest *Cards, cards CardList) {
 	source.Removes(cards)
@@ -377,6 +377,15 @@ func (cards *Cards) GetByName(name string) *Card {
 		}
 	}
 	return nil
+}
+
+func (cards *Cards) GetById(id int) *Card {
+	_cards := *cards
+	if card, ok := _cards[id]; ok {
+		return card
+	} else {
+		return nil
+	}
 }
 
 func (cards *Cards) CountByName(name string) (count int) {
@@ -491,4 +500,40 @@ func (list CardList) String() string {
 		}
 	}
 	return s
+}
+
+type Turn enum
+
+const (
+	PlayerA Turn = iota
+	PlayerB
+	Tie
+)
+
+func (turn *Turn) UnmarshalJSON(data []byte) (err error) {
+	str := string(data)
+	str = str[1 : len(str)-1]
+	if str == "PlayerA" {
+		*turn = PlayerA
+	}
+	if str == "PlayerB" {
+		*turn = PlayerB
+	} else {
+		*turn = Tie
+	}
+	return nil
+}
+func (turn Turn) MarshalJSON() ([]byte, error) {
+	buffer := bytes.NewBufferString(`"`)
+	if turn == PlayerA {
+		buffer.WriteString("PlayerA")
+	}
+	if turn == PlayerB {
+		buffer.WriteString("PlayerB")
+	}
+	if turn == Tie {
+		buffer.WriteString("Tie")
+	}
+	buffer.WriteRune('"')
+	return buffer.Bytes(), nil
 }

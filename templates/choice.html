@@ -1,0 +1,10 @@
+<div style="display: flex; flex-wrap: wrap">
+    {{range .}}
+    {{if .EligibleMedic}}
+    <a href="/choice/{{.Id}}" style="margin: 0.5rem">
+        {{.DisplayName}}
+        <img src="/static/{{.Picture}}" style="display: block"/>
+    </a>
+    {{end}}
+    {{end}}
+</div>

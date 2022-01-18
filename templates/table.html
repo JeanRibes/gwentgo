@@ -1,0 +1,170 @@
+<div id="gametable">
+  <table>
+    <tr class="drag-dest Weather"
+        ondragover="onDragOver(event)"
+        ondragenter="onDragEnter(event)"
+        ondragleave="onDragLeave(event)"
+        ondrop="dropCard(event)"
+        id="Weather">
+      <td class="Weather drag-indicator">Weather</td>
+      {{range .Weather}}
+      <td class="card">{{template "card" .}}</td>
+      {{end}}
+    </tr>
+  </table>
+  <div>
+    <table>
+      <tr>
+        <td class="drag-indicator">Siege<br/>
+          <b>{{.Enemy.ScoreSiege}}</b></td>
+        {{range .Enemy.Siege}}
+        <td class="card">
+          {{template "card" . }}
+        </td>
+        {{end}}
+      </tr>
+      <tr>
+        <td class="drag-indicator">Ranged Combat<br/>
+          <b>{{.Enemy.ScoreRangedCombat}}</b>
+        </td>
+        {{range .Enemy.RangedCombat}}
+        <td class="card">
+          {{template "card" . }}
+        </td>
+        {{end}}
+      </tr>
+      <tr>
+        <td class="drag-indicator">Close Combat
+          <br/>
+          <b>{{.Enemy.ScoreCloseCombat}}</b>
+        </td>
+        {{range .Enemy.CloseCombat}}
+        <td class="card">
+          {{template "card" . }}
+        </td>
+        {{end}}
+      </tr>
+    </table>
+    <hr/>
+    <table>
+      <tr class="drag-dest CloseCombat Special"
+          ondragover="onDragOver(event)"
+          ondragenter="onDragEnter(event)"
+          ondragleave="onDragLeave(event)"
+          ondrop="dropCard(event)"
+          id="CloseCombat">
+
+        <td class="CloseCombat Special drag-indicator">Close Combat<br/>
+          <b>{{.MySide.ScoreCloseCombat}}</b>
+        </td>
+        {{range .MySide.CloseCombat}}
+        <td class="card">
+          {{template "card" . }}
+        </td>
+        {{end}}
+      </tr>
+      <tr id="RangedCombat" class="drag-dest RangedCombat Special"
+          ondragover="onDragOver(event)"
+          ondragenter="onDragEnter(event)"
+          ondragleave="onDragLeave(event)"
+          ondrop="dropCard(event)">
+        <td class="RangedCombat Special drag-indicator">Ranged Combat<br/>
+          <b>{{.MySide.ScoreRangedCombat}}</b>
+        </td>
+        {{range .MySide.RangedCombat}}
+        <td class="card">
+          {{template "card" . }}
+        </td>
+        {{end}}
+      </tr>
+      <tr id="Siege" class="drag-dest Siege"
+          ondragover="onDragOver(event)"
+          ondragenter="onDragEnter(event)"
+          ondragleave="onDragLeave(event)"
+          ondrop="dropCard(event)">
+        <td class="Siege drag-indicator">Siege<br/>
+          <b>{{.MySide.ScoreSiege}}</b>
+        </td>
+        {{range .MySide.Siege}}
+        <td class="card">
+          {{template "card" . }}
+        </td>
+        {{end}}
+      </tr>
+
+      {{if .Choice}}
+      <tr>
+        <td>Medic card choice</td>
+        {{range .Heap}}{{if .EligibleMedic}}
+        <td class="card">
+          <figure draggable="true"
+                  class="card draggable" id="card-{{.Id}}"
+                  ondragstart="startDragCard(event,'{{.Row}}','{{.Id}}')"
+                  ondragend="endDragCard(event,'{{.Row}}')">
+            <img src="/static/{{.Picture}}" class="card"/>
+            <figcaption class="card">
+              {{template "card-caption" . }}
+            </figcaption>
+          </figure>
+        </td>
+        {{end}}{{end}}
+      </tr>
+      {{end}}
+
+      <tr>
+        <td>Hand</td>
+        {{range .Hand}}
+        <td class="card">
+          <figure draggable="true"
+                  class="card draggable" id="card-{{.Id}}"
+                  ondragstart="startDragCard(event,'{{.Row}}','{{.Id}}')"
+                  ondragend="endDragCard(event,'{{.Row}}')">
+            <img src="/static/{{.Picture}}" class="card"/>
+            <figcaption class="card">
+              {{template "card-caption" . }}
+            </figcaption>
+          </figure>
+        </td>
+        {{end}}
+      </tr>
+
+      <tr>
+        <td>Heap</td>
+        {{range .Heap}}
+        <td class="card">
+          <figure class="card" id="card-{{.Id}}">
+            <img draggable="false" src="/static/{{.Picture}}" class="card"/>
+            <figcaption class="card">
+              {{template "card-caption" . }}
+            </figcaption>
+          </figure>
+        </td>
+        {{end}}
+      </tr>
+    </table>
+  </div>
+</div>
+
+
+{{define "card-caption"}}
+<b>{{.DisplayName}}</b> #{{.Id}}<br/>
+<p>Strength: <b>{{.Strength}}</b></p>
+<p>Row: <b>{{.Row}}</b></p>
+{{if .Effects}}
+Effects:
+{{end }}
+<ul>
+  {{range .Effects}}
+  <li>{{.}}</li>
+  {{end}}
+</ul>
+{{end}}
+
+{{define "card" }}
+<figure class="card" id="card-{{.Id}}">
+  <img draggable="false" src="/static/{{.Picture}}" class="card"/>
+  <figcaption class="card">
+    {{template "card-caption" . }}
+  </figcaption>
+</figure>
+{{end}}

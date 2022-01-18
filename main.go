@@ -147,8 +147,14 @@ func main() {
 		c.String(200, "saved !")
 	})
 
-	r.GET("/game", gameHandler)
+	//r.GET("/game", gameHandler)
 	r.GET("/demo", demoGameHandler)
+	r.POST("/move", demoMove)
+
+	r.GET("/choicedemo", func(c *gin.Context) {
+		c.HTML(200, "choice.html", &game.SideB.Hand)
+	})
+
 	r.Run() // listen and serve on 0.0.0.0:8080
 }
 
