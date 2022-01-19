@@ -5,9 +5,10 @@
     <title>HTML5 Gwynt</title>
     <style>
         body {
-            color: white;
             --card-height: 5.5rem;
             --card-width: 4.5rem;
+            box-sizing: border-box;
+            margin: 0;
         }
 
         img.card {
@@ -50,6 +51,7 @@
             height: unset;
             z-index: 1;
         }
+
         /*td.card:nth-child(2) > figure.card > img.card {
             z-index: 1;
             height: unset;
@@ -62,28 +64,160 @@
         }
 
         body {
-            background-color: saddlebrown;
+            background-color: #4e270b;
         }
 
         tr.drag-dest {
             max-height: var(--card-height);
         }
+
         td.drag-indicator {
             color: black;
             background-color: #e5cdae;
             height: var(--card-height);
             text-align: center;
         }
-        #gametable > *{
+
+        .game > * {
             display: inline-block;
-            vertical-align: top;
+            vertical-align: middle;
         }
+
+        .row-content > .card {
+            display: inline-block;
+            position: relative;
+            z-index: 2;
+        }
+
+        .rows {
+            width: 100%;
+        }
+
+        .row-placeholder {
+            align-self: stretch;
+            text-align: center;
+            font-size: 4.5rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: clip;
+
+            background-color: black;
+            color: transparent;
+            text-shadow: 0 2px 3px #4e270b;
+            background-clip: text;
+
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+        }
+
+        .drop-dest > * {
+            pointer-events: none;
+        }
+
+
+        .row {
+            display: flex;
+            align-items: center;
+            /*margin: 0.1rem;*/
+            position: relative;
+            margin-left: 1rem;
+        }
+
+        .row-title {
+            width: 8rem;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .row-content {
+            flex-grow: 1;
+            /*padding: 0.2rem;*/
+            align-self: stretch;
+
+            background-color: #642c05;
+            box-shadow: inset 0 0 22px black;
+            border-radius: 0.5rem;
+            min-height: 5.5rem;
+            border: 0.1rem solid #211004;
+        }
+
+        .row-score {
+            display: block;
+            position: absolute;
+            left: -1.6rem;
+            background-color: white;
+            border-radius: 5rem;
+            padding: 0.2rem;
+            width: 1.5rem;
+            height: 1.5rem;
+            text-align: center;
+            line-height: 1.5rem;
+            border: 0.1rem solid black;
+            font-family: sans-serif;
+        }
+
+        .row-score.enemy {
+            background-color: lightblue;
+        }
+
+        .row-score.player {
+            background-color: khaki;
+        }
+
+        #Hand {
+            border: 0.2rem solid orangered;
+        }
+
+        /*.row::before {
+            content: "";
+            display: block;
+            height: 100%;
+            left: -0.5rem;
+            width: 0.5rem;
+            background-color: grey;
+            position: absolute;
+        }*/
+
+        .dnd-highlight {
+            box-shadow: inset 0 0 22px black, 0 0 20px orangered;
+            border: 0.1rem solid orangered;
+        }
+
+        .dnd-invalid {
+            background-color: darkred;
+        }
+
+        .dnd-valid {
+            background-color: #2c4413;
+        }
+
+        .row-content:not(#Weather) {
+            min-width: 60vw;
+        }
+
+        .weather-debuff.Siege {
+            background-color: #5c8097;
+        }
+
+        .weather-debuff.CloseCombat {
+            background-color: #364a83;
+        }
+
+        .weather-debuff.RangedCombat {
+            background-color: #89898a;
+        }
+
+        .nope {
+        }
+
     </style>
 </head>
 
 <body>
-<a href="/demo">refresh</a>
 {{template "table.html" .}}
+<a href="/demo">refresh</a>
 
 <form id="form-play-move" action="{{.Url}}" method="post">
     <label for="card-id">Card ID to play</label>
@@ -95,9 +229,12 @@
 </form>
 </body>
 <script>
+    let highlightColor = "peru";
+    let normalRows = ['Weather', 'CloseCombat', 'RangedCombat', 'Siege']
+
     function startDragCard(event, row, cardid) {
         let target = event.target
-        if (!target.classList.contains('draggable')){
+        if (!target.classList.contains('draggable')) {
             target = target.parentNode;
         }
         // when the user starts to drag a card
@@ -105,11 +242,13 @@
         event.dataTransfer.setData("row", row);
         event.dataTransfer.setData("cardid", cardid);
         event.dataTransfer.dropEffect = "move";
-        if (row !== 'Special') {
-            document.getElementById(row).style.background = "yellow";
+        if (normalRows.indexOf(row) > 0) {
+            document.getElementById(row).classList.add('dnd-highlight');
+            //document.getElementById(row).style.background = highlightColor;
         } else {
-            document.getElementById('CloseCombat').style.background = "yellow";
-            document.getElementById('RangedCombat').style.background = "yellow";
+            document.querySelectorAll('.' + row).forEach((item) => {
+                item.classList.add('dnd-highlight')
+            });
         }
     }
 
@@ -117,37 +256,42 @@
         event.preventDefault();
         event.target.style.background = "";
         let target = event.target;
-        if (!target.classList.contains("drag-dest")) {
-            target = event.target.parentElement;
-        } else {
-            target = event.target;
-        }
+        /*while (!target.classList.contains("drop-dest")) {
+            target = target.parentNode;
+        }*/
+
         if (target.classList.contains(event.dataTransfer.getData("row"))) {
-            let td = document.createElement('td');
-            td.className = "card";
             let fig = document.getElementById(event.dataTransfer.getData("id"))
             fig.draggable = false;
-            fig.childNodes.forEach((child)=>{child.draggable=false})
+            fig.childNodes.forEach((child) => {
+                child.draggable = false
+            })
             fig.classList.remove('draggable')
-            td.appendChild(fig)
-            target.appendChild(td);
+            target.appendChild(fig);
             //target.appendChild(document.getElementById(event.dataTransfer.getData("id")))
             let target_row = target.id;
-            playMove(event.dataTransfer.getData("cardid"),target_row)
+            playMove(event.dataTransfer.getData("cardid"), target_row)
         }
     }
 
     function onDragOver(event) {
+        /*if (event.target.classList.contains("drop-dest")) {
+            event.preventDefault();
+        }*/
         event.preventDefault();
     }
 
     function onDragEnter(event) {
         //when a dragged card arrives on top of a DnD target
         ////event.target.classList.add("dragover") marche pas
-        if (event.target.classList.contains(event.dataTransfer.getData("row"))) {
-            event.target.style.background = "green"
+        let target = event.target;
+        /*while (!target.classList.contains("drop-dest")) {
+            target = target.parentNode;
+        }*/
+        if (target.classList.contains(event.dataTransfer.getData("row"))) {
+            target.classList.add("dnd-valid")
         } else {
-            event.target.style.background = "red"
+            target.classList.add('dnd-invalid')
         }
 
     }
@@ -155,8 +299,15 @@
     function onDragLeave(event) {
         //when a dragged card leaves a DnD target
         ////event.target.classList.remove("dragover") marche pas
+        let target = event.target;
+        /*while (!target.classList.contains("drop-dest")) {
+            target = target.parentNode;
+        }*/
         try {
-            event.target.style.background = ""
+            target.classList.remove('dnd-valid', 'dnd-invalid')
+            /*if (event.target.classList.contains(event.dataTransfer.getData("row"))) {
+                event.target.classList.add('dnd-highlight')
+            }*/
         } catch (e) {
 
         }
@@ -164,27 +315,56 @@
     }
 
     function endDragCard(event, row) {
-        // when the user starts to drag a card
-        if (row !== 'Special') {
+        /*if (row !== 'Special') {
             let elem = document.getElementById(row);
             if (elem !== null || elem !== undefined) {
                 elem.style.background = "";
             }
-        }
+        }*/
+        document.getElementById("Siege").classList.remove('dnd-highlight', 'dnd-valid', 'dnd-invalid');
+        document.getElementById("RangedCombat").classList.remove('dnd-highlight', 'dnd-valid', 'dnd-invalid');
+        document.getElementById("CloseCombat").classList.remove('dnd-highlight', 'dnd-valid', 'dnd-invalid');
+        document.getElementById("Weather").classList.remove('dnd-highlight', 'dnd-valid', 'dnd-invalid');
     }
-    function playMove(id,row){
-        console.log("move: ",id,row)
+
+    function playMove(id, row) {
+        console.log("move: ", id, row)
         document.getElementById('card-row').value = row;
         document.getElementById('card-id').value = id;
         //document.getElementById("form-play-submit").click()
         htmx.ajax('POST', '{{.Url}}', {
             target: '#gametable',
             values: {
-                "row":row,
-                "id":id,
+                "row": row,
+                "id": id,
             }
         })
     }
 </script>
-<script src="https://unpkg.com/htmx.org@1.6.1"></script>
+<script src="/static/htmx-1.6.1.js"></script>
 </html>
+
+{{define "card-caption"}}
+<b>{{.DisplayName}}</b> #{{.Id}}<br/>
+<p>Strength: <b>{{.Strength}}</b></p>
+<p>Row: <b>{{.Row}}</b></p>
+{{if .Effects}}
+Effects:
+{{end }}
+<ul>
+    {{range .Effects}}
+    <li>{{.}}</li>
+    {{end}}
+</ul>
+{{end}}
+
+{{define "card" }}
+<figure class="card" id="card-{{.Id}}">
+    <img class="card" draggable="false" src="/static/{{.Picture}}"/>
+    <figcaption class="card">
+        {{template "card-caption" . }}
+    </figcaption>
+</figure>
+{{end}}
+
+{{define "weather"}}{{if . }}weather-debuff{{else}}nope{{end}}{{end}}

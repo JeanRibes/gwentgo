@@ -61,15 +61,22 @@ func displayBoard(c *gin.Context,
 	choice bool,
 	player *gwent.GameSide,
 	enemy *gwent.GameSide) {
+	weather := game.WeatherCards.Effects()
 	c.HTML(200, template, gin.H{
-		"Weather": game.WeatherCards,
-		"MySide":  player,
-		"Enemy":   enemy,
-		"Hand":    player.Hand,
-		"Heap":    player.Heap,
-		"Url":     url,
-		"Choice":  choice,
-		"Round":   game.Round(),
+		"Weather": gin.H{
+			"Cards":        game.WeatherCards,
+			"CloseCombat":  weather.Has(gwent.BitingFrost),
+			"RangedCombat": weather.Has(gwent.ImpenetrableFog),
+			"Siege":        weather.Has(gwent.TorrentialRain),
+		},
+		"MySide": player,
+		"Player": player,
+		"Enemy":  enemy,
+		"Hand":   player.Hand,
+		"Heap":   player.Heap,
+		"Url":    url,
+		"Choice": choice,
+		"Round":  game.Round(),
 	})
 }
 
@@ -105,5 +112,5 @@ func demoPass(c *gin.Context) {
 }
 
 func demoChoice(c *gin.Context) {
-	displayBoard(c, "/move", "table.html", true, game.Player(), game.Enemy())
+	displayBoard(c, "/move", "game.html", true, game.Player(), game.Enemy())
 }

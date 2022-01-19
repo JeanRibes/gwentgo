@@ -152,9 +152,7 @@ func main() {
 	r.POST("/move", demoMove)
 	r.POST("/pass", demoPass)
 
-	r.GET("/choicedemo", func(c *gin.Context) {
-		c.HTML(200, "choice.html", &game.SideB.Hand)
-	})
+	r.GET("/choicedemo", demoChoice)
 
 	r.Run() // listen and serve on 0.0.0.0:8080
 }

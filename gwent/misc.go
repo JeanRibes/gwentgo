@@ -194,6 +194,19 @@ func (card *Card) Picture() string {
 	}
 }
 
+func (card *Card) BoardRow() string {
+	if card.Row != Special {
+		return card.Row.String()
+	}
+	if card.Effects.Has(Scorch) {
+		return "Scorch"
+	}
+	if card.Effects.Has(Agile) {
+		return "Agile"
+	}
+	return "All"
+}
+
 func (card *Card) String() string {
 	return fmt.Sprintf("#%d [%s][%s] %s (%d->%d) {%s}",
 		card.Id,
