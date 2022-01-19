@@ -113,3 +113,89 @@ func TestEffects_Has(t *testing.T) {
 	card := AllCardsMap["biting-frost"]
 	assert.True(t, card.Effects.Has(BitingFrost))
 }
+
+func TestGame_RoundWinner(t *testing.T) {
+	game := Game{
+		SideA: &GameSide{
+			CloseCombat:  &Cards{},
+			RangedCombat: &Cards{},
+			Siege:        &Cards{},
+		},
+		SideB: &GameSide{
+			CloseCombat:  &Cards{},
+			RangedCombat: &Cards{},
+			Siege:        &Cards{},
+		},
+		WeatherCards: &Cards{},
+	}
+	assert.Equal(t, game.RoundWinner(), Tie)
+
+	game = Game{
+		SideA: &GameSide{
+			CloseCombat: ToCards(CardList{
+				AllCardsMap["ves"],
+			}),
+			RangedCombat: &Cards{},
+			Siege:        &Cards{},
+		},
+		SideB: &GameSide{
+			CloseCombat:  ToCards(CardList{AllCardsMap["vreemde"]}),
+			RangedCombat: &Cards{},
+			Siege:        &Cards{},
+		},
+		WeatherCards: &Cards{},
+	}
+	assert.Equal(t, game.RoundWinner(), PlayerA)
+}
+
+func TestGame_RoundFinished(t *testing.T) {
+	game := Game{
+		SideA:   &GameSide{},
+		SideB:   &GameSide{},
+		History: []Turn{},
+	}
+	assert.Equal(t, game.Round(), 0)
+	assert.False(t, game.RoundFinished())
+	game.SideA.Passed = true
+	assert.False(t, game.RoundFinished())
+	game.SideB.Passed = true
+
+	assert.True(t, game.RoundFinished())
+}
+
+func TestGame_NextRound(t *testing.T) {
+	game := NewGame(&Cards{}, &Cards{}, &Cards{}, &Cards{})
+	game.SideA.Passed = true
+	game.SideB.Passed = true
+	game.NextRound()
+	assert.Equal(t, game.Round(), 1)
+	assert.Equal(t, game.History[0], Tie)
+}
+
+func TestGame_Finished(t *testing.T) {
+	game := NewGame(&Cards{}, &Cards{}, &Cards{}, &Cards{})
+	assert.False(t, game.Finished())
+	game.SideA.Passed = true
+	game.SideB.Passed = true
+	game.History = []Turn{Tie, Tie}
+	assert.True(t, game.Finished())
+
+	game.History = []Turn{PlayerA, PlayerA, Tie}
+	t.Log(game.MaxRoundsWon())
+	t.Log(game.RoundFinished())
+	assert.True(t, game.Finished())
+
+	game.History = []Turn{PlayerA, PlayerB, Tie}
+	assert.False(t, game.Finished())
+
+	game.History = []Turn{PlayerA, PlayerB, PlayerA}
+	assert.True(t, game.Finished())
+}
+
+func TestGame_Winner(t *testing.T) {
+	game := Game{
+		History: []Turn{PlayerA, PlayerA, Tie},
+	}
+	t.Log(game.RoundsWon())
+	assert.Equal(t, game.Winner(), PlayerA)
+}

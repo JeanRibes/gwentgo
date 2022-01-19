@@ -5,12 +5,14 @@ import (
 	"math/rand"
 )
 
+const MAX_ROUND = 3
+
 func (game *Game) PlayMove(
 	card *Card,
 	slotRow Row,
 	player *GameSide,
 	enemy *GameSide) bool { // boolean: indicates if there is a "medic" choice
-	if player.Hand.Has(card) {
+	if player.Hand.Has(card) && !player.Passed {
 
 		game.WeatherClean() //needed at the beginning, otherwise debuff may apply in presence of the Clear weather
 
@@ -42,7 +44,7 @@ func (game *Game) PlayMove(
 				}
 			}
 			if card.Effects.Has(Muster) {
-				//find others in deck
+				//find others in deck and hand, but not heap !
 				MoveCards(player.Hand, row, player.Hand.FindByName(card.Name))
 				MoveCards(player.Deck, row, player.Deck.FindByName(card.Name))
 			}
@@ -58,7 +60,7 @@ func (game *Game) PlayMove(
 			MoveCard(player.Hand, player.Heap, card)
 			enemy.Score(game.WeatherCards.Effects())
 		}
-		game.Switch()
+		//game.Switch()
 	}
 	return false
 }
@@ -118,7 +120,8 @@ func (player *GameSide) Score(weather Effects) (sum int) {
 	player.ScoreCloseCombat = player.CloseCombat.Score(weather.Has(BitingFrost))
 	player.ScoreRangedCombat = player.RangedCombat.Score(weather.Has(ImpenetrableFog))
 	player.ScoreSiege = player.Siege.Score(weather.Has(TorrentialRain))
-	return player.ScoreCloseCombat + player.ScoreRangedCombat + player.ScoreSiege
+	player.CachedScore = player.ScoreCloseCombat + player.ScoreRangedCombat + player.ScoreSiege
+	return player.CachedScore
 }
 
 func (row Cards) Score(weatherDebuff bool) (sum int) {
@@ -179,12 +182,12 @@ func (game *Game) Scorch() {
 	cards := game.Merge()
 	maxScore := 0
 	for _, card := range cards {
-		if card.score > maxScore {
+		if card.score > maxScore && !card.Effects.Has(Hero) {
 			maxScore = card.score
 		}
 	}
 	for _, card := range cards {
-		if card.score == maxScore {
+		if card.score == maxScore && !card.Effects.Has(Hero) {
 			card.Strength = 0
 			card.score = -1
 			log.Print("scorched", card)
@@ -197,12 +200,12 @@ func (gs *GameSide) ScorchAlt(card *Card) {
 	rowToScorch := gs.GetRow(card.Row)
 	maxScore := 0
 	for _, enemy_card := range *rowToScorch {
-		if enemy_card.score > maxScore {
+		if enemy_card.score > maxScore && !card.Effects.Has(Hero) {
 			maxScore = enemy_card.score
 		}
 	}
 	for _, enemy_card := range *rowToScorch {
-		if enemy_card.score == maxScore {
+		if enemy_card.score == maxScore && !card.Effects.Has(Hero) {
 			MoveCard(rowToScorch, gs.Heap, enemy_card)
 		}
 	}
@@ -218,4 +221,75 @@ func (card *Card) EligibleMedic() bool {
 		}
 	}
 	return true
+}
+
+func (g *Game) RoundWinner() Turn {
+	scoreA, scoreB := g.Score()
+	if scoreA > scoreB {
+		return PlayerA
+	}
+	if scoreB > scoreA {
+		return PlayerB
+	}
+	return Tie
+}
+
+func (g *Game) RoundFinished() bool {
+	return g.SideA.Passed && g.SideB.Passed
+}
+
+// starts a new round if required, and reports if it started one
+func (g *Game) NextRound() bool {
+	if g.RoundFinished() {
+		round_winner := g.RoundWinner()
+
+		g.History = append(g.History, round_winner)
+
+		if g.Round() < MAX_ROUND {
+			g.SideA.EndRound()
+			g.SideB.EndRound()
+			if round_winner != Tie {
+				g.Turn = round_winner //winner starts new round
+			}
+		}
+
+		return true
+	}
+	/*if g.Round() > MAX_ROUND {
+		panic("max rounds exceeded")
+	}*/
+	return false
+}
+
+func (g *Game) Finished() bool {
+	if !g.RoundFinished() {
+		return false
+	}
+	side, max := g.MaxRoundsWon()
+	if side == Tie { //game ends in a tie
+		return g.Round() == MAX_ROUND
+	} else {
+		return g.Round() == MAX_ROUND || max > 1
+	}
+}
+
+func (g *Game) Winner() Turn {
+	winner, wins := g.MaxRoundsWon()
+	if wins == 2 && winner != Tie {
+		return winner
+	}
+	rounds := g.RoundsWon()
+
+	if rounds[PlayerB] > rounds[PlayerA] {
+		return PlayerB
+	}
+	if rounds[PlayerA] > rounds[PlayerB] {
+		return PlayerA
+	}
+	/*
+		if rounds[PlayerA] == rounds[PlayerB]{
+				return Tie
+		}
+	*/
+	return Tie
 }

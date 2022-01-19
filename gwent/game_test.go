@@ -6,11 +6,7 @@ import (
 	"testing"
 )
 
-func Lol() {
-
-}
-
-func TestGame(t *testing.T) {
+func aTestGame(t *testing.T) {
 	game := Creategame()
 	cardscount := game.Sort()
 	assert.Greaterf(t, cardscount, 0, "bad game sorting")
@@ -52,7 +48,7 @@ func TestGame(t *testing.T) {
 	assert.Equal(t, game.SideA.CloseCombat.GetByName("geralt-of-rivia").score, 15)
 	assert.Equal(t, game.ScoreB(), 9)
 
-	troiseiem := game.SideA.Hand.GetByName("blue-stripes-commando")
+	troiseiem := game.SideA.Hand.GetByName("villentretenmerth")
 	game.PlayMove(troiseiem, troiseiem.Row, game.SideA, game.SideB)
 
 	merged := game.Merge()

@@ -1,4 +1,6 @@
-<div id="gametable">
+<button hx-post="/pass" hx-swap="outerHTML">Pass</button>
+<div hx-swap-oob="true" id="gametable">
+  <b>Round n°{{.Round}}</b>
   <table>
     <tr class="drag-dest Weather"
         ondragover="onDragOver(event)"
@@ -45,7 +47,15 @@
         {{end}}
       </tr>
     </table>
+    {{if .Enemy.Passed}}
+    <b>Passed !</b>
+    {{end}}
+    {{.Enemy.CachedScore}}
     <hr/>
+    {{.MySide.CachedScore}}
+    {{if .MySide.Passed}}
+    <b>Passed !</b>
+    {{end}}
     <table>
       <tr class="drag-dest CloseCombat Special"
           ondragover="onDragOver(event)"

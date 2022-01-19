@@ -510,6 +510,15 @@ const (
 	Tie
 )
 
+func (turn Turn) String() string {
+	if turn == PlayerA {
+		return "PlayerA"
+	}
+	if turn == PlayerB {
+		return "PlayerB"
+	}
+	return "Tie"
+}
 func (turn *Turn) UnmarshalJSON(data []byte) (err error) {
 	str := string(data)
 	str = str[1 : len(str)-1]
@@ -525,15 +534,7 @@ func (turn *Turn) UnmarshalJSON(data []byte) (err error) {
 }
 func (turn Turn) MarshalJSON() ([]byte, error) {
 	buffer := bytes.NewBufferString(`"`)
-	if turn == PlayerA {
-		buffer.WriteString("PlayerA")
-	}
-	if turn == PlayerB {
-		buffer.WriteString("PlayerB")
-	}
-	if turn == Tie {
-		buffer.WriteString("Tie")
-	}
+	buffer.WriteString(turn.String())
 	buffer.WriteRune('"')
 	return buffer.Bytes(), nil
 }

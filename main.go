@@ -150,6 +150,7 @@ func main() {
 	//r.GET("/game", gameHandler)
 	r.GET("/demo", demoGameHandler)
 	r.POST("/move", demoMove)
+	r.POST("/pass", demoPass)
 
 	r.GET("/choicedemo", func(c *gin.Context) {
 		c.HTML(200, "choice.html", &game.SideB.Hand)

@@ -1,6 +1,8 @@
 package gwent
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type GameSide struct {
 	Hand *Cards //what the player sees and can choose to play
@@ -14,6 +16,7 @@ type GameSide struct {
 	ScoreCloseCombat  int
 	ScoreRangedCombat int
 	ScoreSiege        int
+	CachedScore       int
 
 	Passed bool
 }
@@ -36,7 +39,6 @@ type Game struct {
 	SideB        *GameSide
 
 	Turn    Turn
-	Round   int //0,1,2
 	History []Turn
 }
 
@@ -50,9 +52,20 @@ func NewGame(
 		WeatherCards: &Cards{},
 		SideA:        NewGameSide(deckA, handA),
 		SideB:        NewGameSide(deckB, handB),
-		History:      make([]Turn, 3),
+		History:      []Turn{},
 		Turn:         PlayerA,
 	}
+}
+
+func (g *Game) Pass(side *GameSide) {
+	side.Passed = true
+	if !g.NextRound() { //if only one player passed, switch turn
+		g.Switch()
+	}
+}
+
+func (g *Game) Round() int {
+	return len(g.History)
 }
 
 func (player *GameSide) GetRow(row Row) *Cards {
@@ -226,11 +239,58 @@ func (g *Game) Enemy() *GameSide {
 	return nil
 }
 func (g *Game) Switch() *Game {
+	if g.SideA.Passed {
+		g.Turn = PlayerB
+		return g
+	}
+	if g.SideB.Passed {
+		g.Turn = PlayerA
+		return g
+	}
 	if g.Turn == PlayerA {
 		g.Turn = PlayerB
+		return g
 	}
 	if g.Turn == PlayerB {
 		g.Turn = PlayerA
+		return g
 	}
 	return g
+}
+
+func (gs *GameSide) EndRound() {
+	MoveCards(gs.CloseCombat, gs.Heap, gs.CloseCombat.List())
+	MoveCards(gs.RangedCombat, gs.Heap, gs.RangedCombat.List())
+	MoveCards(gs.Siege, gs.Heap, gs.Siege.List())
+	gs.Passed = false
+}
+
+func (g *Game) RoundsWon() map[Turn]int {
+	wins := map[Turn]int{
+		PlayerA: 0,
+		PlayerB: 0,
+		Tie:     0,
+	}
+	for _, winner_round := range g.History { //count rounds won
+		wins[winner_round] += 1
+	}
+	return wins
+}
+func (g *Game) RoundsWonBy(side Turn) int {
+	return g.RoundsWon()[side]
+}
+func (g *Game) MaxRoundsWon() (_ Turn, rounds_won int) {
+	wons := g.RoundsWon()
+	rounds_won = 0
+	for _, won := range wons {
+		if won > rounds_won {
+			rounds_won = won
+		}
+	}
+	for side, won := range wons {
+		if won == rounds_won {
+			return side, rounds_won
+		}
+	}
+	return Tie, -1
 }

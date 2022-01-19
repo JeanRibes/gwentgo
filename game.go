@@ -37,7 +37,7 @@ var game *gwent.Game = gwent.Creategame()
 func demoGameHandler(c *gin.Context) {
 	game.Sort()
 	log.Print(game)
-	displayBoard(c, "/move", "game.html", false, game.SideA, game.SideB, game.SideA.Hand, game.SideA.Heap)
+	displayBoard(c, "/move", "game.html", false, game.Player(), game.Enemy())
 }
 
 func getRowAndCard(c *gin.Context) (row gwent.Row, cardid int) {
@@ -60,39 +60,50 @@ func displayBoard(c *gin.Context,
 	template string,
 	choice bool,
 	player *gwent.GameSide,
-	enemy *gwent.GameSide,
-	hand *gwent.Cards,
-	heap *gwent.Cards) {
+	enemy *gwent.GameSide) {
 	c.HTML(200, template, gin.H{
 		"Weather": game.WeatherCards,
 		"MySide":  player,
 		"Enemy":   enemy,
-		"Hand":    hand,
-		"Heap":    heap,
+		"Hand":    player.Hand,
+		"Heap":    player.Heap,
 		"Url":     url,
 		"Choice":  choice,
+		"Round":   game.Round(),
 	})
 }
 
 func demoMove(c *gin.Context) {
 	row, cardid := getRowAndCard(c)
 	card := game.GetCardById(cardid)
+
 	if card != nil {
-		medicEffect := game.PlayMove(card, row, game.SideA, game.SideB)
+		player := game.Player()
+		enemy := game.Enemy()
+		medicEffect := game.PlayMove(card, row, player, enemy)
 		if medicEffect {
 			println("medic !!")
-			displayBoard(c, "/demo", "table.html", true, game.SideA, game.SideB, game.SideA.Hand, game.SideA.Heap)
+			displayBoard(c, "/move", "table.html", true, player, enemy)
 		} else {
-			displayBoard(c, "/demo", "table.html", false, game.SideA, game.SideB, game.SideA.Hand, game.SideA.Heap)
+			game.Switch()
+			displayBoard(c, "/move", "table.html", false, game.Player(), game.Enemy())
 		}
 	} else {
 		c.String(400, "card not found")
 	}
 }
 
-/*
-func demoChoice(c *gin.Context) {
-	row, cardid := getRowAndCard(c)
-	card := game.GetCardById(cardid)
+func demoPass(c *gin.Context) {
+	game.Pass(game.Player())
+	if game.Finished() {
+		log.Printf("rounds won: %s\n", game.History)
+		c.String(200, game.Winner().String()+" won !")
+		return
+	}
+	//game.NextRound()
+	displayBoard(c, "/move", "table.html", false, game.Player(), game.Enemy())
+}
 
-}*/
+func demoChoice(c *gin.Context) {
+	displayBoard(c, "/move", "table.html", true, game.Player(), game.Enemy())
+}
