@@ -207,6 +207,11 @@ func (card *Card) BoardRow() string {
 	return "All"
 }
 
+func (card *Card) Copy() *Card {
+	_copy := *card
+	return &_copy
+}
+
 func (card *Card) String() string {
 	return fmt.Sprintf("#%d [%s][%s] %s (%d->%d) {%s}",
 		card.Id,
@@ -399,6 +404,13 @@ func (cards *Cards) GetById(id int) *Card {
 	} else {
 		return nil
 	}
+	/*
+		for _, card := range *cards {
+				if card.Id == id {
+					return card
+				}
+			}
+	*/
 }
 
 func (cards *Cards) CountByName(name string) (count int) {

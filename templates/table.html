@@ -1,179 +1,197 @@
 <div class="game" hx-swap-oob="true" id="gametable">
-    <div class="weather-row">
-        <div class="row-title">
-            Weather
+    <div class="vertical">
+        <div class="board-vertical">
+            <div class="leader-card enemy">
+                <img class="leader-img" src="/static/Emhyr-var-Emreis-His-Imperial-Majesty-gwent-card.jpg"/>
+            </div>
+
+            <div class="leader enemy">
+                Enemy {{.Enemy.Hand | len}}🂠
+                <div class="main-score">
+                    {{.Enemy.CachedScore}}
+                </div>
+            </div>
+
+            <div class="weather-row">
+                <div class="row-title">
+                    Weather
+                </div>
+                <div class="row-content Weather drop-dest"
+                     id="Weather"
+                     ondragenter="onDragEnter(event)"
+                     ondragleave="onDragLeave(event)"
+                     ondragover="onDragOver(event)"
+                     ondrop="dropCard(event)">
+                    {{range .Weather.Cards}}
+                    {{template "card" .}}
+                    {{end}}
+                </div>
+                <button hx-post="/pass">Pass</button>
+                round {{.Round}}
+            </div>
+
+            <div class="leader player">
+                Player {{.Player.Hand | len}}🂠
+                <div class="main-score">
+                    {{.Player.CachedScore}}
+                </div>
+            </div>
+            <div class="leader-card player">
+                <img class="leader-img" src="/static/Eredin-Commander-of-the-Red-Riders-gwent-card.jpg"/>
+            </div>
         </div>
-        <div class="row-content Weather drop-dest"
-             id="Weather"
-             ondragenter="onDragEnter(event)"
-             ondragleave="onDragLeave(event)"
-             ondragover="onDragOver(event)"
-             ondrop="dropCard(event)">
-            {{range .Weather.Cards}}
-            {{template "card" .}}
-            {{end}}
-        </div>
-        <button hx-post="/pass">Pass</button>
     </div>
     <div class="board">
         <div class="side enemy">
-            <div class="leader"></div>
             <div class="rows">
                 <div class="row">
                     <div class="row-score enemy">
                         {{.Enemy.ScoreSiege}}
                     </div>
-                    <div class="row-content Siege {{template " weather
-                    " .Weather.Siege}}">
-                    {{range .Enemy.Siege}}
-                    {{template "card" . }}
-                    {{end}}
-                    <div class="row-placeholder Siege">Siege</div>
+                    <div class="row-content Siege {{if .Weather.Siege }}weather-debuff{{end}}">
+                        {{range .Enemy.Siege}}
+                        {{template "card" . }}
+                        {{end}}
+                        <div class="row-placeholder Siege">Siege</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="row-score enemy">
+                        {{.Enemy.ScoreRangedCombat}}
+                    </div>
+                    <div class="row-content RangedCombat {{if .Weather.RangedCombat }}weather-debuff{{end}}">
+                        {{range .Enemy.RangedCombat}}
+                        {{template "card" . }}
+                        {{end}}
+                        <div class="row-placeholder RangedCombat">Ranged Combat</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="row-score enemy">
+                        {{.Enemy.ScoreCloseCombat}}
+                    </div>
+                    <div class="row-content CloseCombat {{if .Weather.CloseCombat }}weather-debuff{{end}}">
+                        {{range .Enemy.CloseCombat}}
+                        {{template "card" . }}
+                        {{end}}
+                        <div class="row-placeholder CloseCombat">Close Combat</div>
+                    </div>
                 </div>
             </div>
-            <div class="row">
-                <div class="row-score enemy">
-                    {{.Enemy.ScoreRangedCombat}}
+        </div>
+        <br/>
+        <div class="side player">
+            <div class="rows">
+                <div class="row">
+                    <div class="row-score player">
+                        {{.Player.ScoreCloseCombat}}
+                    </div>
+                    <div class="row-content drop-dest CloseCombat Scorch
+                     Agile {{if .Weather.CloseCombat }}weather-debuff{{end}}"
+                         id="CloseCombat"
+                         ondragenter="onDragEnter(event)"
+                         ondragleave="onDragLeave(event)"
+                         ondragover="onDragOver(event)"
+                         ondrop="dropCard(event)">
+                        {{range .Player.CloseCombat}}
+                        {{template "card" . }}
+                        {{end}}
+                        <div class="row-placeholder CloseCombat">Close Combat</div>
+                    </div>
                 </div>
-                <div class="row-content RangedCombat {{template " weather
-                " .Weather.RangedCombat}}">
-                {{range .Enemy.RangedCombat}}
-                {{template "card" . }}
-                {{end}}
-                <div class="row-placeholder RangedCombat">Ranged Combat</div>
+                <div class="row">
+                    <div class="row-score player">
+                        {{.Player.ScoreRangedCombat}}
+                    </div>
+                    <div class="row-content drop-dest RangedCombat Scorch
+                     Agile {{if .Weather.RangedCombat }}weather-debuff{{end}}"
+                         id="RangedCombat"
+                         ondragenter="onDragEnter(event)"
+                         ondragleave="onDragLeave(event)"
+                         ondragover="onDragOver(event)"
+                         ondrop="dropCard(event)">
+                        {{range .Player.RangedCombat}}
+                        {{template "card" . }}
+                        {{end}}
+                        <div class="row-placeholder RangedCombat">Ranged Combat</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="row-score player">
+                        {{.Player.ScoreSiege}}
+                    </div>
+                    <div class="row-content drop-dest Siege Scorch
+                     {{if .Weather.Siege }}weather-debuff{{end}}"
+                         id="Siege"
+                         ondragenter="onDragEnter(event)"
+                         ondragleave="onDragLeave(event)"
+                         ondragover="onDragOver(event)"
+                         ondrop="dropCard(event)">
+                        {{range .Player.Siege}}
+                        {{template "card" . }}
+                        {{end}}
+                        <div class="row-placeholder Siege">Siege</div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="row">
-            <div class="row-score enemy">
-                {{.Enemy.ScoreCloseCombat}}
-            </div>
-            <div class="row-content CloseCombat {{template " weather
-            " .Weather.CloseCombat}}">
-            {{range .Enemy.CloseCombat}}
-            {{template "card" . }}
-            {{end}}
-            <div class="row-placeholder CloseCombat">Close Combat</div>
-        </div>
-    </div>
-</div>
-</div>
-<br/>
-<div class="side player">
-    <div class="leader"></div>
-    <div class="rows">
-        <div class="row">
-            <div class="row-score player">
-                {{.Player.ScoreCloseCombat}}
-            </div>
-            <div class="row-content drop-dest
-           CloseCombat Scorch Agile {{template " weather
-            " .Weather.CloseCombat}}"
-            ondragover="onDragOver(event)"
-            ondragenter="onDragEnter(event)"
-            ondragleave="onDragLeave(event)"
-            ondrop="dropCard(event)"
-            id="CloseCombat">
-            {{range .Player.CloseCombat}}
-            {{template "card" . }}
-            {{end}}
-            <div class="row-placeholder CloseCombat">Close Combat</div>
-        </div>
-    </div>
-    <div class="row">
-        <div class="row-score player">
-            {{.Player.ScoreRangedCombat}}
-        </div>
-        <div class="row-content drop-dest
-           RangedCombat Scorch Agile {{template " weather
-        " .Weather.RangedCombat}}"
-        ondragover="onDragOver(event)"
-        ondragenter="onDragEnter(event)"
-        ondragleave="onDragLeave(event)"
-        ondrop="dropCard(event)"
-        id="RangedCombat">
-        {{range .Player.RangedCombat}}
-        {{template "card" . }}
-        {{end}}
-        <div class="row-placeholder RangedCombat">Ranged Combat</div>
-    </div>
-</div>
-<div class="row">
-    <div class="row-score player">
-        {{.Player.ScoreSiege}}
-    </div>
-    <div class="row-content drop-dest
-           Siege Scorch {{template " weather
-    " .Weather.Siege}}"
-    ondragover="onDragOver(event)"
-    ondragenter="onDragEnter(event)"
-    ondragleave="onDragLeave(event)"
-    ondrop="dropCard(event)"
-    id="Siege">
-    {{range .Player.Siege}}
-    {{template "card" . }}
-    {{end}}
-    <div class="row-placeholder Siege">Siege</div>
-</div>
-</div>
-</div>
-</div>
-<br/>
-<div class="side hand-heap">
-    <!-- TODO: MEDIC CHOICE !!! -->
-    <div class="rows">
-        {{if .Choice}}
-        <div class="row">
-            <div class="row-title">Heap</div>
-            <div class="row-content" id="Hand">
-                {{range .Player.Heap}}{{if .EligibleMedic}}
-                <figure class="card draggable"
-                        draggable="true" id="card-{{.Id}}"
-                        ondragend="endDragCard(event,'{{.BoardRow}}')"
-                        ondragstart="startDragCard(event,'{{.BoardRow}}','{{.Id}}')">
-                    <img class="card" src="/static/{{.Picture}}"/>
-                    <figcaption class="card">
-                        {{template "card-caption" . }}
-                    </figcaption>
-                </figure>
-                {{end}}{{end}}
-            </div>
-        </div>
-        <div class="row">
-            <div class="row-title">Hand</div>
-            <div class="row-content">
-                {{range .Player.Hand}}
-                {{template "card" . }}
-                {{end}}
-            </div>
-        </div>
-        {{else}}
-        <div class="row">
-            <div class="row-title">Hand</div>
-            <div class="row-content" id="Hand">
-                {{range .Player.Hand}}
-                <figure class="card draggable"
-                        draggable="true" id="card-{{.Id}}"
-                        ondragend="endDragCard(event,'{{.BoardRow}}')"
-                        ondragstart="startDragCard(event,'{{.BoardRow}}','{{.Id}}')">
-                    <img class="card" src="/static/{{.Picture}}"/>
-                    <figcaption class="card">
-                        {{template "card-caption" . }}
-                    </figcaption>
-                </figure>
-                {{end}}
-            </div>
-        </div>
+        <br/>
+        <div class="side hand-heap">
+            <div class="rows">
+                {{if .Choice}}
+                <div class="row">
+                    <div class="row-title">Heap</div>
+                    <div class="row-content" id="Hand">
+                        {{range .Player.Heap}}{{if .EligibleMedic}}
+                        <figure class="card draggable"
+                                draggable="true" id="card-{{.Id}}"
+                                ondragend="endDragCard(event,'{{.BoardRow}}')"
+                                ondragstart="startDragCard(event,'{{.BoardRow}}','{{.Id}}')">
+                            <img class="card" src="/static/{{.Picture}}"/>
+                            <figcaption class="card">
+                                {{template "card-caption" . }}
+                            </figcaption>
+                        </figure>
+                        {{end}}{{end}}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="row-title">Hand</div>
+                    <div class="row-content">
+                        {{range .Player.Hand}}
+                        {{template "card" . }}
+                        {{end}}
+                    </div>
+                </div>
+                {{else}}
+                <div class="row">
+                    <div class="row-title">Hand</div>
+                    <div class="row-content" id="Hand">
+                        {{range .Player.Hand}}
+                        <figure class="card draggable"
+                                draggable="true" id="card-{{.Id}}"
+                                ondragend="endDragCard(event,'{{.BoardRow}}')"
+                                ondragstart="startDragCard(event,'{{.BoardRow}}','{{.Id}}')">
+                            <img class="card" src="/static/{{.Picture}}"/>
+                            <figcaption class="card">
+                                {{template "card-caption" . }}
+                            </figcaption>
+                        </figure>
+                        {{end}}
+                    </div>
+                </div>
 
-        <div class="row">
-            <div class="row-title">Heap</div>
-            <div class="row-content">
-                {{range .Player.Heap}}
-                {{template "card" . }}
+                <div class="row">
+                    <div class="row-title">Heap</div>
+                    <div class="row-content">
+                        <div class="row-placeholder Heap">Heap</div>
+                        {{range .Player.Heap}}
+                        {{template "card" . }}
+                        {{end}}
+                    </div>
+                </div>
                 {{end}}
             </div>
         </div>
-        {{end}}
     </div>
-</div>
-</div>
 </div>

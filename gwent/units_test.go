@@ -199,3 +199,13 @@ func TestGame_Winner(t *testing.T) {
 	t.Log(game.RoundsWon())
 	assert.Equal(t, game.Winner(), PlayerA)
 }
+
+func TestCard_Copy(t *testing.T) {
+	card := AllCardsMap["geralt-of-rivia"]
+	copy := card.Copy()
+	assert.Equal(t, card.String(), copy.String())
+	assert.Equal(t, card.Strength, copy.Strength)
+	card.Strength = -2
+	assert.NotEqual(t, card.Strength, copy.Strength)
+
+}
