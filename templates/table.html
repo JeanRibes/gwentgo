@@ -6,7 +6,11 @@
             </div>
 
             <div class="leader enemy">
-                Enemy {{.Enemy.Hand | len}}🂠
+                Enemy
+                <br>
+                {{.Enemy.Hand | len}} 🂠
+                <br>
+                {{template "lives" .Lives.Enemy}}
                 <div class="main-score">
                     {{.Enemy.CachedScore}}
                 </div>
@@ -31,7 +35,11 @@
             </div>
 
             <div class="leader player">
-                Player {{.Player.Hand | len}}🂠
+                Player
+                <br/>
+                {{.Player.Hand | len}} 🂠
+                <br/>
+                {{template "lives" .Lives.Player}}
                 <div class="main-score">
                     {{.Player.CachedScore}}
                 </div>

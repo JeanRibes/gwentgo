@@ -67,7 +67,7 @@ func main() {
 
 	r := gin.Default()
 	r.LoadHTMLGlob("templates/*")
-	r.Static("/static", "./assets")
+	r.Static("/static", "./static")
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
@@ -153,6 +153,12 @@ func main() {
 	r.POST("/pass", demoPass)
 
 	r.GET("/choicedemo", demoChoice)
+
+	r.GET("/deck/:index/", showDeck)
+	r.POST("/deck/:index/", editDeck)
+	r.POST("/deck/", newDeck)
+	r.POST("/deck/:index/add/:id", addToDeck)
+	r.POST("/deck/:index/remove/:id", removeFromDeck)
 
 	r.Run() // listen and serve on 0.0.0.0:8080
 }

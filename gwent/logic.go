@@ -102,7 +102,7 @@ func (hand *Cards) Draw(deck *Cards) *Card {
 	panic(nil)
 }
 
-func InitDeck(all *[]Card, faction Faction) *Cards {
+func InitDeck(all *CardList, faction Faction) *Cards {
 	deck := &Cards{}
 	_all := *all
 	for id, _ := range _all {
@@ -110,7 +110,7 @@ func InitDeck(all *[]Card, faction Faction) *Cards {
 		if card.Faction == faction || card.Faction == Neutral {
 			card.Id = id
 			card.Faction = faction
-			deck.Add(&card)
+			deck.Add(card)
 		}
 	}
 	return deck

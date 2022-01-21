@@ -102,7 +102,7 @@ func (game *Game) Merge() CardList {
 	return arr
 }
 
-func (row *Cards) Clean() CardList {
+func (row *Cards) Clean() *CardList {
 	removed := CardList{}
 	for _, card := range *row {
 		if card.score < 0 {
@@ -110,7 +110,7 @@ func (row *Cards) Clean() CardList {
 			delete(*row, card.Id)
 		}
 	}
-	return removed
+	return &removed
 }
 
 func (row *Cards) Clear() {
@@ -238,6 +238,15 @@ func (g *Game) Enemy() *GameSide {
 	}
 	return nil
 }
+func (g *Game) SideEnemy() Turn {
+	if g.Turn == PlayerA {
+		return PlayerB
+	}
+	if g.Turn == PlayerB {
+		return PlayerA
+	}
+	return Tie
+}
 func (g *Game) Switch() *Game {
 	if g.SideA.Passed {
 		g.Turn = PlayerB
@@ -293,4 +302,14 @@ func (g *Game) MaxRoundsWon() (_ Turn, rounds_won int) {
 		}
 	}
 	return Tie, -1
+}
+
+func (g *Game) LivesLeft(side Turn) (lives int) {
+	lives = 2
+	for _, who_won := range g.History {
+		if who_won != side {
+			lives -= 2
+		}
+	}
+	return lives
 }

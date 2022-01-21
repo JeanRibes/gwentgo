@@ -6,42 +6,7 @@
     <link href="/static/style.css" rel="stylesheet"/>
 
     <style>
-        .leader {
-            position: relative;
-            padding-top: 1rem;
-            background-color: black;
-            width: 100%;
-            color: white;
-        }
 
-        .main-score {
-            display: block;
-            position: absolute;
-            background-color: white;
-            border-radius: 5rem;
-            padding: 0.3rem;
-            width: 1.5rem;
-            height: 1.5rem;
-            text-align: center;
-            line-height: 1.5rem;
-            border: 0.1rem solid black;
-            font-family: sans-serif;
-            font-size: 1.1rem;
-            z-index: 3;
-            color: black;
-            top: -1rem;
-            left: 2rem;
-            font-weight: bold;
-        }
-
-        .leader-img {
-            display: block;
-            border-radius: 0.4rem;
-            height: 6.9rem;
-            width: 5rem;
-            object-fit: cover;
-            object-position: 0 0;
-        }
     </style>
 
 </head>
@@ -200,4 +165,19 @@ Effects:
         {{template "card-caption" . }}
     </figcaption>
 </figure>
+{{end}}
+
+{{define "lives"}}
+{{if . | eq 2}}
+<span class="life">⬢</span>
+<span class="life">⬢</span>
+{{end}}
+{{if . | eq 1}}
+<span class="life">⬢</span>
+<span class="death">⬢</span>
+{{end}}
+{{if . | eq 0}}
+<span class="death">⬢</span>
+<span class="death">⬢</span>
+{{end}}
 {{end}}

@@ -3,9 +3,10 @@
 - [x] logique de jeu (API gwent)
 - [x] matchmaking
 - [ ] jeu à deux
-- [ ] deckbuilding
-    - [ ] carte(s) offertes par victoires
-    - [ ] starter deck (possiblement autre que northern realms)
+- [x] deckbuilding
+  - [ ] carte(s) offertes par victoires
+  - [ ] starter deck (possiblement autre que northern realms)
+  - [x] interface pour choisir les cartes
 - [ ] stockage des données (DB, json...)
 - [ ] sécurité signature HMAC des decks des gens ?
 - [ ] IA

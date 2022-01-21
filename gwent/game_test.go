@@ -6,7 +6,8 @@ import (
 	"testing"
 )
 
-func aTestGame(t *testing.T) {
+func TestGame(t *testing.T) {
+	t.Skip()
 	game := Creategame()
 	cardscount := game.Sort()
 	assert.Greaterf(t, cardscount, 0, "bad game sorting")
@@ -70,7 +71,7 @@ func aTestGame(t *testing.T) {
 	assert.Equal(t, game.ScoreA(), 4)
 	assert.Equal(t, game.ScoreB(), 3)
 
-	septieme := game.SideA.Hand.GetByName(AllCards[9].Name)
+	septieme := game.SideA.Hand.GetByName((*AllCardsList)[9].Name)
 	assert.Equal(t, game.SideA.Hand.Len(), 7)
 	game.PlayMove(septieme, septieme.Row, game.SideA, game.SideB)
 	assert.Equal(t, game.SideA.Hand.Len(), 8)

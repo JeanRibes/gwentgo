@@ -5,12 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 )
 
 type enum uint
-
-const MAX_CARDS_IN_ROW = 20
 
 type Faction enum
 
@@ -39,6 +38,8 @@ func (faction Faction) String() string {
 		return "Nilfgaard"
 	case Monsters:
 		return "Monsters"
+	case Neutral:
+		return "Neutral"
 	default:
 		return "Default"
 	}
@@ -55,11 +56,13 @@ func FactionFromString(str string) (Faction, error) {
 		return Nilfgaard, nil
 	case "Monsters":
 		return Monsters, nil
+	case "Neutral":
+		return Neutral, nil
 	default:
 		println("faction not found", str)
 		return 0, errors.New("invalid faction: " + str)
 	}
-	return 0, errors.New("eerr ??")
+	//return 0, errors.New("eerr ??")
 }
 func (faction *Faction) UnmarshalJSON(data []byte) (err error) {
 	str := string(data)
@@ -299,8 +302,10 @@ func EffectFromString(effect string) (Effect, error) {
 		return ImpenetrableFog, nil
 	case "TorrentialRain":
 		return TorrentialRain, nil
+	case "Decoy":
+		return Decoy, nil
 	default:
-		return 0, errors.New("invalid effect")
+		return 0, errors.New("invalid effect: " + effect)
 	}
 }
 func (effect *Effect) UnmarshalJSON(data []byte) (err error) {
@@ -315,7 +320,7 @@ func MoveCard(source *Cards, dest *Cards, card *Card) {
 	dest.Add(card)
 	source.Remove(card)
 }
-func MoveCards(source *Cards, dest *Cards, cards CardList) {
+func MoveCards(source *Cards, dest *Cards, cards *CardList) {
 	source.Removes(cards)
 	dest.Adds(cards)
 }
@@ -341,8 +346,8 @@ func (cards *Cards) CheckIds() bool {
 	return true
 }
 
-func (cards *Cards) Adds(news CardList) *Cards {
-	for _, card := range news {
+func (cards *Cards) Adds(news *CardList) *Cards {
+	for _, card := range *news {
 		cards.Add(card)
 	}
 	return cards
@@ -352,8 +357,8 @@ func (cards *Cards) Remove(card *Card) *Cards {
 	return cards
 }
 
-func (cards *Cards) Removes(to_remove CardList) *Cards {
-	for _, card := range to_remove {
+func (cards *Cards) Removes(to_remove *CardList) *Cards {
+	for _, card := range *to_remove {
 		cards.Remove(card)
 	}
 	return cards
@@ -367,14 +372,14 @@ func (cards *Cards) Effects() Effects {
 	return effects
 }
 
-func (cards *Cards) FindByName(name string) (ret CardList) {
-	ret = CardList{}
+func (cards *Cards) FindByName(name string) *CardList {
+	ret := CardList{}
 	for _, card := range *cards {
 		if card.Name == name {
 			ret = append(ret, card)
 		}
 	}
-	return ret
+	return &ret
 }
 
 func (cards *Cards) FindByName2(name string) (ret CardList) {
@@ -470,14 +475,14 @@ func (cards *Cards) String() string {
 	return s
 }
 
-func (cards *Cards) List() CardList {
+func (cards *Cards) List() *CardList {
 	l := make(CardList, len(*cards))
 	i := 0
 	for _, card := range *cards {
 		l[i] = card
 		i += 1
 	}
-	return l
+	return &l
 }
 
 func (cards *Cards) SetFaction(faction Faction) *Cards {
@@ -507,17 +512,17 @@ type CardList []*Card
 /*
 Deep Copy
 */
-func (in CardList) Copy() CardList {
-	out := make(CardList, len(in))
-	for i, cp := range in {
+func (in *CardList) Copy() *CardList {
+	out := make(CardList, len(*in))
+	for i, cp := range *in {
 		card := *cp
 		out[i] = &card
 	}
-	return out
+	return &out
 }
-func (list CardList) String() string {
+func (list *CardList) String() string {
 	s := ""
-	for _, card := range list {
+	for _, card := range *list {
 		if card != nil {
 			s += card.String() + "\n"
 		} else {
@@ -525,6 +530,145 @@ func (list CardList) String() string {
 		}
 	}
 	return s
+}
+
+func (list *CardList) Cards() *Cards {
+	return ToCards(*list)
+}
+
+func (list *CardList) Removes(other *CardList) *CardList {
+	return list.Copy().Cards().Removes(other).List()
+}
+
+/*
+Performs a copy !
+*/
+func (list *CardList) FilterFaction(faction Faction) *CardList {
+	ret := CardList{}
+	for _, card := range *list {
+		if card.Faction == faction || card.Faction == Neutral {
+			ret = append(ret, card.Copy())
+		}
+	}
+	return &ret
+}
+
+func (list *CardList) Len() int {
+	return len(*list)
+}
+func (_list *CardList) Less(i, j int) bool {
+	list := *_list
+	return list[i].Strength < list[j].Strength
+}
+func (_list *CardList) Swap(i, j int) {
+	list := *_list
+	list[i], list[j] = list[j], list[i]
+}
+
+func (_list *CardList) group() *CardList {
+	list := *_list
+	maxlen := len(list)
+	for index, card := range list {
+		if index < maxlen-2 {
+			next := list[index+1]
+			if len(card.Name) > len(next.Name) && card.Strength == next.Strength {
+				list[index] = next
+				list[index+1] = card
+			}
+		}
+	}
+	return _list
+}
+
+func (_list *CardList) IsGroupSorted() bool { // use on a strenght-sorted list
+	list := *_list
+	strength := -1
+	lenstr := -1
+	for _, card := range list {
+		if card.Strength < strength {
+			return false
+		} //not sorted by strength
+
+		if card.Strength > strength { //we changed of sorting group
+			strength = card.Strength
+			lenstr = len(card.Name)
+		}
+
+		if lenstr > len(card.Name) {
+			return false
+		} // not sorted by name length
+
+		lenstr = len(card.Name)
+	}
+	return true
+}
+
+func (list *CardList) GroupSort(max_passes int) *CardList {
+	sort.Sort(list)
+	n := 0
+	for !list.IsGroupSorted() {
+		list.group()
+		n += 1
+		if n > max_passes {
+			log.Printf("gave up sorting after %d passes\n", n)
+			return list
+		}
+	}
+	return list
+}
+
+func (list *CardList) GetById(id int) *Card {
+	for _, card := range *list {
+		if card.Id == id {
+			return card
+		}
+	}
+	return nil
+}
+
+func (list *CardList) Add(card *Card) *CardList {
+	*list = append(*list, card)
+	return list
+}
+
+func (list *CardList) Index(card *Card) int {
+	for i, _card := range *list {
+		if _card.Id == card.Id {
+			return i
+		}
+	}
+	return -1
+}
+
+func (list *CardList) Has(card *Card) bool {
+	return list.Index(card) >= 0
+}
+
+func (list *CardList) Remove(card *Card) *CardList {
+	index := list.Index(card)
+	if index < 0 {
+		panic("index < 0")
+	}
+	_list := *list
+	*list = append(_list[:index], _list[index+1:]...)
+	return list
+}
+
+func (list *CardList) CheckNil() bool {
+	for _, card := range *list {
+		if card == nil {
+			return false
+		}
+	}
+	return true
+}
+func MoveCard_list(source *CardList, dest *CardList, card *Card) {
+	if source.Has(card) {
+		dest.Add(card)
+		source.Remove(card)
+	} else {
+		panic(fmt.Errorf("illegal move: card #%d not present in source\n", card.Id))
+	}
 }
 
 type Turn enum
