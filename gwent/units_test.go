@@ -6,55 +6,27 @@ import (
 	"testing"
 )
 
-func genHand() *Cards {
-	hand := ToCards(CardList{
-		AllCardsMap["saesenthessis"],
+func genHand() *CardList {
+	return ToCards(CardList{
 		AllCardsMap["saesenthessis"],
 		AllCardsMap["isengrim-faoiltiarna"],
 		AllCardsMap["filavandrel"],
 		AllCardsMap["yaevinn"],
 		AllCardsMap["geralt-of-rivia"],
 	}).Copy()
-	hand.Reindex()
-	return &hand
 }
 
 func TestCards_List(t *testing.T) {
 	hand := genHand()
 	list := *hand.List()
-	assert.Equal(t, hand.Len(), 6)
+	assert.Equal(t, hand.Len(), 5)
 	assert.NotEqual(t, list[0].Id, list[1].Id)
-
-	_hand := *hand
-	for _, lcard := range list {
-		hcard, ok := _hand[lcard.Id]
-		if !ok {
-			t.Fatal("map lookup failed")
-		}
-		if hcard.DisplayName != lcard.DisplayName {
-			t.Errorf("%s was %s", hcard, lcard)
-			t.Fatal("bad copy")
-		}
-	}
 }
 
 func TestCards_FindByName(t *testing.T) {
 	hand := genHand()
 	list := hand.FindByName("saesenthessis")
-	_hand := *hand
-	for _, lcard := range *list {
-		if lcard.Name != "saesenthessis" {
-			t.Fatal("bad name")
-		}
-		hcard, ok := _hand[lcard.Id]
-		if !ok {
-			t.Fatal("map lookup failed")
-		}
-		if hcard.DisplayName != lcard.DisplayName {
-			t.Errorf("%s was %s", hcard, lcard)
-			t.Fatal("bad copy")
-		}
-	}
+	assert.Equal(t, (*list)[0].Name, "saesenthessis")
 }
 
 func TestCards_GetByName(t *testing.T) {
@@ -69,6 +41,13 @@ func TestCards_GetByName(t *testing.T) {
 	}
 }
 
+func TestCards_GetById(t *testing.T) {
+	hand := genHand().Copy()
+	t.Log(hand)
+	card := hand.GetById(106)
+	assert.NotNil(t, card)
+}
+
 func TestCards_Remove(t *testing.T) {
 	hand := genHand()
 	geralt := hand.GetByName("geralt-of-rivia")
@@ -80,7 +59,9 @@ func TestCards_Remove(t *testing.T) {
 }
 
 func TestCards_CountByName(t *testing.T) {
-	hand := genHand()
+	hand := genHand().Cards()
+	nc := hand.GetById(106).Copy()
+	hand.Add(nc)
 	if hand.CountByName("saesenthessis") != 2 {
 		t.Fail()
 	}
@@ -119,16 +100,16 @@ func TestEffects_Has(t *testing.T) {
 func TestGame_RoundWinner(t *testing.T) {
 	game := Game{
 		SideA: &GameSide{
-			CloseCombat:  &Cards{},
-			RangedCombat: &Cards{},
-			Siege:        &Cards{},
+			CloseCombat:  &CardList{},
+			RangedCombat: &CardList{},
+			Siege:        &CardList{},
 		},
 		SideB: &GameSide{
-			CloseCombat:  &Cards{},
-			RangedCombat: &Cards{},
-			Siege:        &Cards{},
+			CloseCombat:  &CardList{},
+			RangedCombat: &CardList{},
+			Siege:        &CardList{},
 		},
-		WeatherCards: &Cards{},
+		WeatherCards: &CardList{},
 	}
 	assert.Equal(t, game.RoundWinner(), Tie)
 
@@ -137,15 +118,15 @@ func TestGame_RoundWinner(t *testing.T) {
 			CloseCombat: ToCards(CardList{
 				AllCardsMap["ves"].Copy(),
 			}),
-			RangedCombat: &Cards{},
-			Siege:        &Cards{},
+			RangedCombat: &CardList{},
+			Siege:        &CardList{},
 		},
 		SideB: &GameSide{
 			CloseCombat:  ToCards(CardList{AllCardsMap["vreemde"].Copy()}),
-			RangedCombat: &Cards{},
-			Siege:        &Cards{},
+			RangedCombat: &CardList{},
+			Siege:        &CardList{},
 		},
-		WeatherCards: &Cards{},
+		WeatherCards: &CardList{},
 	}
 	assert.Equal(t, game.RoundWinner(), PlayerA)
 }
@@ -166,7 +147,7 @@ func TestGame_RoundFinished(t *testing.T) {
 }
 
 func TestGame_NextRound(t *testing.T) {
-	game := NewGame(&Cards{}, &Cards{}, &Cards{}, &Cards{})
+	game := NewGame(&CardList{}, &CardList{}, &CardList{}, &CardList{})
 	game.SideA.Passed = true
 	game.SideB.Passed = true
 	game.NextRound()
@@ -175,24 +156,27 @@ func TestGame_NextRound(t *testing.T) {
 }
 
 func TestGame_Finished(t *testing.T) {
-	t.Skipf("fixme !")
-	game := NewGame(&Cards{}, &Cards{}, &Cards{}, &Cards{})
-	assert.False(t, game.Finished())
+	game := NewGame(&CardList{}, &CardList{}, &CardList{}, &CardList{})
+	assert.False(t, game.RoundFinished())
 	game.SideA.Passed = true
 	game.SideB.Passed = true
 	game.History = []Turn{Tie, Tie}
-	assert.True(t, game.Finished())
+	assert.True(t, game.RoundFinished())
+	assert.False(t, game.Finished())
 
 	game.History = []Turn{PlayerA, PlayerA, Tie}
 	t.Log(game.MaxRoundsWon())
 	t.Log(game.RoundFinished())
 	assert.True(t, game.Finished())
+	assert.Equal(t, PlayerA, game.Winner())
 
 	game.History = []Turn{PlayerA, PlayerB, Tie}
-	assert.False(t, game.Finished())
+	assert.True(t, game.Finished())
+	assert.Equal(t, Tie, game.Winner())
 
 	game.History = []Turn{PlayerA, PlayerB, PlayerA}
 	assert.True(t, game.Finished())
+	assert.Equal(t, PlayerA, game.Winner())
 }
 
 func TestGame_Winner(t *testing.T) {
@@ -260,4 +244,14 @@ func TestPlayerDeck_AddToDeck(t *testing.T) {
 
 	assert.True(t, deck.Rest.CheckNil())
 	assert.True(t, deck.Deck.CheckNil())
+}
+
+func TestCardList_SortKeys(t *testing.T) {
+	hand := genHand()
+	t.Log(hand)
+	hand.SortKeys(10)
+	t.Log(hand)
+	for _, card := range *hand {
+		assert.Greaterf(t, card.Id, 9, "sorting ids failed")
+	}
 }

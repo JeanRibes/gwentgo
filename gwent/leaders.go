@@ -1,5 +1,7 @@
 package gwent
 
+import "bytes"
+
 type Ability enum
 
 const (
@@ -39,7 +41,10 @@ func AbilityFromString(str string) Ability {
 }
 
 func (ability Ability) MarshalJSON() ([]byte, error) {
-	return []byte(`"` + ability.String() + `""`), nil
+	buffer := bytes.NewBufferString(`"`)
+	buffer.WriteString(ability.String())
+	buffer.WriteRune('"')
+	return buffer.Bytes(), nil
 }
 func (ability *Ability) UnmarshalJSON(data []byte) (err error) {
 	*ability = AbilityFromString(string(data))

@@ -5,36 +5,37 @@ import (
 )
 
 type GameSide struct {
-	Hand *Cards //what the player sees and can choose to play
-	Deck *Cards //the rest of the cards, that may be used with spies
-	Heap *Cards //discarded cards, that may come back to hand with Medics
+	Hand *CardList //what the player sees and can choose to play
+	Deck *CardList //the rest of the cards, that may be used with spies
+	Heap *CardList //discarded cards, that may come back to hand with Medics
 
-	CloseCombat  *Cards
-	RangedCombat *Cards
-	Siege        *Cards
+	CloseCombat  *CardList
+	RangedCombat *CardList
+	Siege        *CardList
 
 	ScoreCloseCombat  int
 	ScoreRangedCombat int
 	ScoreSiege        int
 	CachedScore       int
 
-	Passed bool
+	Passed      bool
+	MedicAction bool
 }
 
-func NewGameSide(deck *Cards, hand *Cards) *GameSide {
+func NewGameSide(deck *CardList, hand *CardList) *GameSide {
 	return &GameSide{
 		Deck:         deck,
 		Hand:         hand,
-		Heap:         &Cards{},
-		CloseCombat:  &Cards{},
-		RangedCombat: &Cards{},
-		Siege:        &Cards{},
+		Heap:         &CardList{},
+		CloseCombat:  &CardList{},
+		RangedCombat: &CardList{},
+		Siege:        &CardList{},
 		Passed:       false,
 	}
 }
 
 type Game struct {
-	WeatherCards *Cards
+	WeatherCards *CardList
 	SideA        *GameSide
 	SideB        *GameSide
 
@@ -43,18 +44,24 @@ type Game struct {
 }
 
 func NewGame(
-	deckA *Cards,
-	handA *Cards,
-	deckB *Cards,
-	handB *Cards,
+	deckA *CardList,
+	handA *CardList,
+	deckB *CardList,
+	handB *CardList,
 ) *Game {
 	return &Game{
-		WeatherCards: &Cards{},
+		WeatherCards: &CardList{},
 		SideA:        NewGameSide(deckA, handA),
 		SideB:        NewGameSide(deckB, handB),
 		History:      []Turn{},
 		Turn:         PlayerA,
 	}
+}
+
+func GameFromDecks(a *PlayerDeck, b *PlayerDeck) *Game {
+	ah, ad := a.DrawHandDeck()
+	bh, bd := b.DrawHandDeck()
+	return NewGame(ad, ah, bd, bh)
 }
 
 func (g *Game) Pass(side *GameSide) {
@@ -68,7 +75,7 @@ func (g *Game) Round() int {
 	return len(g.History)
 }
 
-func (player *GameSide) GetRow(row Row) *Cards {
+func (player *GameSide) GetRow(row Row) *CardList {
 	switch row {
 	case CloseCombat:
 		return player.CloseCombat
@@ -102,21 +109,21 @@ func (game *Game) Merge() CardList {
 	return arr
 }
 
-func (row *Cards) Clean() *CardList {
-	removed := CardList{}
-	for _, card := range *row {
-		if card.score < 0 {
-			removed = append(removed, card)
-			delete(*row, card.Id)
+func (row *CardList) Clean() *CardList {
+	out := CardList{}
+	row.Clear()
+	for _, card := range *row.Copy() {
+		if card.score == -1 {
+			out.Add(card)
+		} else {
+			row.Add(card)
 		}
 	}
-	return &removed
+	return &out
 }
 
-func (row *Cards) Clear() {
-	for _, card := range *row {
-		delete(*row, card.Id)
-	}
+func (row *CardList) Clear() {
+	*row = CardList{}
 }
 
 func (player *GameSide) Clean() {
@@ -146,18 +153,6 @@ func (gs *GameSide) String() string {
 func (g *Game) String() string {
 	return fmt.Sprintf("Side A\n%s===========\nWeather: %s\n==========\nSide B\n%s",
 		g.SideA, g.WeatherCards, g.SideB)
-}
-
-func (g *Game) Check() bool {
-	return g.SideA.Check() && g.SideB.Check()
-}
-func (gs *GameSide) Check() bool {
-	return gs.Heap.CheckIds() &&
-		gs.Hand.CheckIds() &&
-		gs.Deck.CheckIds() &&
-		gs.Siege.CheckIds() &&
-		gs.RangedCombat.CheckIds() &&
-		gs.CloseCombat.CheckIds()
 }
 
 func (g *Game) Score() (a int, b int) {

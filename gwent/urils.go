@@ -19,10 +19,13 @@ func (bond BondMap) Get(card *Card) int {
 	return bond[card.Name]
 }
 
-func ToCards(list CardList) *Cards {
-	out := &Cards{}
-	for i, card := range list {
+func ToCards(list CardList) *CardList {
+	out := &CardList{}
+	/*for i, card := range list {
 		card.Id = i
+		out.Add(card)
+	}*/
+	for _, card := range list {
 		out.Add(card)
 	}
 	return out
@@ -37,7 +40,7 @@ func CardPointers(in []Card) (out CardList) {
 }
 
 func Creategame() *Game {
-	deckP2 := InitDeck(AllCardsList, ScoiaTael)
+	deckP2 := InitDeck(AllCardsList.Copy(), ScoiaTael).Copy()
 	handP2 := ToCards(CardList{
 		AllCardsMap["saesenthessis"],
 		AllCardsMap["isengrim-faoiltiarna"],
@@ -48,13 +51,14 @@ func Creategame() *Game {
 		AllCardsMap["havekar-healer"],
 		AllCardsMap["scorch"],
 		AllCardsMap["biting-frost"],
-	}).SetFaction(ScoiaTael).Reindex()
+	}).Copy()
+	handP2.SetFaction(ScoiaTael)
 	handP2.GetByName("scorch").Strength = 99
 
 	deckP2.Remove(deckP2.GetByName("dwarf-skirmisher"))
 	deckP2.Remove(deckP2.GetByName("dwarf-skirmisher"))
 
-	deckP1 := InitDeck(AllCardsList, NorthernRealms).Reindex()
+	deckP1 := InitDeck(AllCardsList.Copy(), NorthernRealms).Copy()
 
 	handP1 := ToCards(CardList{
 		(*AllCardsList)[0],               // #0 [Northern Realms][CloseCombat] Blue Stripes Commando (4) {TightBond,}
@@ -67,7 +71,8 @@ func Creategame() *Game {
 		AllCardsMap["ves"],               // #6 [Northern Realms][CloseCombat] Poor F*cking Infantry (1) {TightBond,}
 		AllCardsMap["scorch"],            // #8 [Northern Realms][CloseCombat] Geralt of Rivia (15) {Hero,}
 		(*AllCardsList)[62],              // #9 [Northern Realms][RangedCombat] Yennefer of Vengerberg (7) {Medic,Hero,}
-	}).Reindex().SetFaction(NorthernRealms)
+	}).Copy()
+	handP1.SetFaction(NorthernRealms)
 
 	//t.Log("deck P2", deckP2)
 

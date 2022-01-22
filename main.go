@@ -56,12 +56,14 @@ func waitingRoom(c *gin.Context, key string) {
 
 func main() {
 	load()
+	loadData()
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	go func() {
 		<-c
 		save()
+		saveData()
 		os.Exit(0)
 	}()
 
@@ -154,11 +156,18 @@ func main() {
 
 	r.GET("/choicedemo", demoChoice)
 
-	r.GET("/deck/:index/", showDeck)
-	r.POST("/deck/:index/", editDeck)
-	r.POST("/deck/", newDeck)
-	r.POST("/deck/:index/add/:id", addToDeck)
-	r.POST("/deck/:index/remove/:id", removeFromDeck)
+	r.GET("/register", func(c *gin.Context) {
+		c.File("templates/register.html")
+	})
+	r.POST("/register", register)
+
+	r.Group("/deck").
+		Use(UserDataMiddleware()).
+		GET("/:index/", showDeck).
+		POST("/:index/", editDeck).
+		POST("/", newDeck).
+		POST("/:index/add/:id", addToDeck).
+		POST("/:index/remove/:id", removeFromDeck)
 
 	r.Run() // listen and serve on 0.0.0.0:8080
 }

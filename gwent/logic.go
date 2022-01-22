@@ -1,6 +1,7 @@
 package gwent
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 )
@@ -12,12 +13,24 @@ func (game *Game) PlayMove(
 	slotRow Row,
 	player *GameSide,
 	enemy *GameSide) bool { // boolean: indicates if there is a "medic" choice
-	if player.Hand.Has(card) && !player.Passed {
+	if player.Passed {
+		return false
+	}
 
+	if player.MedicAction {
+		player.MedicAction = false
+		if player.Heap.Has(card) {
+			MoveCard(player.Heap, player.Hand, card)
+			return game.PlayMove(card, slotRow, player, enemy)
+		}
+	}
+
+	if player.Hand.Has(card) {
+		player.MedicAction = false
 		game.WeatherClean() //needed at the beginning, otherwise debuff may apply in presence of the Clear weather
 
 		if CheckMove(card, slotRow, player, enemy, game.WeatherCards) {
-			var row *Cards
+			var row *CardList
 
 			if slotRow == Weather {
 				row = game.WeatherCards
@@ -29,6 +42,7 @@ func (game *Game) PlayMove(
 				}
 			}
 			MoveCard(player.Hand, row, card)
+			//log.Println("moved card "+card.String())
 
 			/*post-move*/
 			if card.Effects.Has(Spy) {
@@ -39,7 +53,8 @@ func (game *Game) PlayMove(
 			if card.Effects.Has(Medic) {
 				//draw from heap
 				if player.Heap.Len() > 0 {
-					//player.Hand.Draw(player.Heap)
+					//player.DrawHandDeck.Draw(player.Heap)
+					player.MedicAction = true
 					return true
 				}
 			}
@@ -52,12 +67,13 @@ func (game *Game) PlayMove(
 		game.Score()
 
 		if card.Effects.Has(Scorch) {
-			if card.Row == Special { //Scorch card
+			if card.Row == Special && card.Strength == 0 { //Scorch card
 				game.Scorch()
+				MoveCard(player.Hand, player.Heap, card)
 			} else { //Villentremerth: destroys the opponent in its row
 				enemy.ScorchAlt(card)
+				//card has been moved above
 			}
-			MoveCard(player.Hand, player.Heap, card)
 			enemy.Score(game.WeatherCards.Effects())
 		}
 		//game.Switch()
@@ -70,7 +86,7 @@ func CheckMove(
 	slotRow Row,
 	player *GameSide,
 	enemy *GameSide,
-	weathers *Cards,
+	weathers *CardList,
 ) (valid bool) {
 	if slotRow != card.Row {
 		if card.Effects.Has(Agile) {
@@ -82,28 +98,31 @@ func CheckMove(
 	return true
 }
 
-func InitHand(deck *Cards) (hand *Cards) {
-	hand = &Cards{}
+func InitHand(deck *CardList) (hand *CardList) {
+	hand = &CardList{}
 	for hand.Len() < 10 {
 		hand.Draw(deck)
 	}
 	return hand
 }
 
-func (hand *Cards) Draw(deck *Cards) *Card {
+func (hand *CardList) Draw(deck *CardList) *Card {
+	if len(*deck) == 0 {
+		return nil
+	}
 	i := rand.Intn(len(*deck))
 	for _, card := range *deck {
 		i -= 1
-		if i == 0 {
+		if i < 0 {
 			MoveCard(deck, hand, card)
 			return card
 		}
 	}
-	panic(nil)
+	panic(fmt.Errorf("draw error: random choice = %d", i))
 }
 
-func InitDeck(all *CardList, faction Faction) *Cards {
-	deck := &Cards{}
+func InitDeck(all *CardList, faction Faction) *CardList {
+	deck := &CardList{}
 	_all := *all
 	for id, _ := range _all {
 		card := _all[id]
@@ -124,7 +143,7 @@ func (player *GameSide) Score(weather Effects) (sum int) {
 	return player.CachedScore
 }
 
-func (row Cards) Score(weatherDebuff bool) (sum int) {
+func (row CardList) Score(weatherDebuff bool) (sum int) {
 	effects := row.Effects()
 	moraleBoost := effects.Has(MoraleBoost)
 	hornBoost := effects.Has(CommanderHorn)
@@ -188,7 +207,6 @@ func (game *Game) Scorch() {
 	}
 	for _, card := range cards {
 		if card.score == maxScore && !card.Effects.Has(Hero) {
-			card.Strength = 0
 			card.score = -1
 			log.Print("scorched", card)
 		}
@@ -266,7 +284,7 @@ func (g *Game) Finished() bool {
 		return false
 	}
 	side, max := g.MaxRoundsWon()
-	if side == Tie { //game ends in a tie
+	if side == Tie && max > 1 { //game ends in a tie
 		return g.Round() == MAX_ROUND
 	} else {
 		return g.Round() == MAX_ROUND || max > 1

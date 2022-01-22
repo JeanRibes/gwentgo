@@ -64,7 +64,7 @@ func displayBoard(c *gin.Context,
 	weather := game.WeatherCards.Effects()
 	c.HTML(200, template, gin.H{
 		"Weather": gin.H{
-			"Cards":        game.WeatherCards,
+			"CardList":     game.WeatherCards,
 			"CloseCombat":  weather.Has(gwent.BitingFrost),
 			"RangedCombat": weather.Has(gwent.ImpenetrableFog),
 			"Siege":        weather.Has(gwent.TorrentialRain),
@@ -73,14 +73,14 @@ func displayBoard(c *gin.Context,
 			"Player": game.LivesLeft(game.Turn),
 			"Enemy":  game.LivesLeft(game.SideEnemy()),
 		},
-		"MySide": player,
-		"Player": player,
-		"Enemy":  enemy,
-		"Hand":   player.Hand,
-		"Heap":   player.Heap,
-		"Url":    url,
-		"Choice": choice,
-		"Round":  game.Round(),
+		"MySide":       player,
+		"Player":       player,
+		"Enemy":        enemy,
+		"DrawHandDeck": player.Hand,
+		"Heap":         player.Heap,
+		"Url":          url,
+		"Choice":       choice,
+		"Round":        game.Round(),
 	})
 }
 
@@ -89,12 +89,12 @@ func demoMove(c *gin.Context) {
 	card := game.GetCardById(cardid)
 
 	if card != nil {
-		player := game.Player()
-		enemy := game.Enemy()
-		medicEffect := game.PlayMove(card, row, player, enemy)
+		log.Println(game.Player().Siege)
+		medicEffect := game.PlayMove(card, row, game.Player(), game.Enemy())
+		log.Println(game.Player().Siege)
 		if medicEffect {
 			println("medic !!")
-			displayBoard(c, "/move", "table.html", true, player, enemy)
+			displayBoard(c, "/move", "table.html", true, game.Player(), game.Enemy())
 		} else {
 			game.Switch()
 			displayBoard(c, "/move", "table.html", false, game.Player(), game.Enemy())

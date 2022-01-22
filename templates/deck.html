@@ -11,21 +11,34 @@
 <h1>{{.Name}}</h1>
 <em>{{.Faction}}</em>
 
-<form action="." method="post">
-    <label for="name-input">Name</label>
-    <input id="name-input" name="name" value="{{.Name}}">
+<div class="twocolumn">
+    <form action="." method="post">
+        <label for="name-input">Name</label>
+        <input id="name-input" name="name" value="{{.Name}}">
 
-    <label for="faction-input">Faction</label>
-    <select id="faction-input" name="faction">
-        <option selected value="">(unchanged)</option>
-        <option value="NorthernRealms ">Northern Realms</option>
-        <option value="Nilfgaard">Nilfgaard</option>
-        <option value="ScoiaTael">Scoia'Tael</option>
-        <option value="Monsters">Monsters</option>
-    </select>
+        <label for="faction-input">Faction</label>
+        <select id="faction-input" name="faction">
+            <option selected value="">(unchanged)</option>
+            <option value="NorthernRealms">NorthernRealms</option>
+            <option value="Nilfgaard">Nilfgaard</option>
+            <option value="ScoiaTael">Scoia'Tael</option>
+            <option value="Monsters">Monsters</option>
+        </select>
 
-    <button type="submit">Change</button>
-</form>
+        <button type="submit">Change</button>
+    </form>
+
+    <form action="/deck/" method="post">
+        <label for="faction-input2">Faction</label>
+        <select id="faction-input2" name="faction">
+            <option value="NorthernRealms">Northern Realms</option>
+            <option value="Nilfgaard">Nilfgaard</option>
+            <option value="ScoiaTael">Scoia'Tael</option>
+            <option value="Monsters">Monsters</option>
+        </select>
+        <button type="submit">Add new deck</button>
+    </form>
+</div>
 
 <header class="twocolumn">
     <h1>All Cards</h1>
@@ -63,18 +76,6 @@
 
     </section>
 </main>
-
-<form action="/deck/" method="post">
-    <label for="faction-input2">Faction</label>
-    <select id="faction-input2" name="faction">
-        <option value="NorthernRealms ">Northern Realms</option>
-        <option value="Nilfgaard">Nilfgaard</option>
-        <option value="ScoiaTael">Scoia'Tael</option>
-        <option value="Monsters">Monsters</option>
-    </select>
-    <button type="submit">Add new deck</button>
-</form>
-
 <script>
     function doubleClick(event, cardid) {
         if (event.target.parentNode.id === 'rest') {
@@ -158,6 +159,13 @@
 
     }
 </script>
+
+<pre>
+    <code>
+{{range .Deck}}
+{{.Id}},{{end}}
+    </code>
+</pre>
 
 </body>
 </html>

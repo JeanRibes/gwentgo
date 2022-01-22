@@ -7,13 +7,12 @@ import (
 	"strconv"
 )
 
-var demoData = gwent.NewPlayerData("jsr022", "mjkjhlkjh")
-
 func showDeck(c *gin.Context) {
+	userData := c.MustGet("user").(*gwent.PlayerData)
 	_index, _ := strconv.ParseInt(c.Param("index"), 10, 64)
 	index := int(_index)
 
-	deck := demoData.Decks.GetByIndex(index)
+	deck := userData.Decks.GetByIndex(index)
 	if !deck.Deck.CheckNil() || !deck.Rest.CheckNil() {
 		c.String(400, "server error: deck is nil")
 		return
@@ -24,19 +23,20 @@ func showDeck(c *gin.Context) {
 		"Faction":  deck.Faction().String(),
 		"Leader":   deck.Leader,
 		"Rest":     deck.Rest, //.FilterFaction(deck.Faction()).Removes(*deck.Deck),
-		"PrevDeck": ((index - 1 + len(*demoData.Decks)) % len(*demoData.Decks)),
-		"NextDeck": (index + 1) % len(*demoData.Decks),
+		"PrevDeck": ((index - 1 + len(*userData.Decks)) % len(*userData.Decks)),
+		"NextDeck": (index + 1) % len(*userData.Decks),
 	})
 }
 
 func addToDeck(c *gin.Context) {
+	userData := c.MustGet("user").(*gwent.PlayerData)
 	sid := c.Param("id")
 	sindex := c.Param("index")
 	_id, _ := strconv.ParseInt(sid, 10, 64)
 	_index, _ := strconv.ParseInt(sindex, 10, 64)
 	id := int(_id)
 	index := int(_index)
-	deck := demoData.Decks.GetByIndex(index)
+	deck := userData.Decks.GetByIndex(index)
 	card := deck.Rest.GetById(id)
 	if card == nil {
 		c.String(400, "card not found")
@@ -47,13 +47,14 @@ func addToDeck(c *gin.Context) {
 }
 
 func removeFromDeck(c *gin.Context) {
+	userData := c.MustGet("user").(*gwent.PlayerData)
 	sid := c.Param("id")
 	sindex := c.Param("index")
 	_id, _ := strconv.ParseInt(sid, 10, 64)
 	_index, _ := strconv.ParseInt(sindex, 10, 64)
 	id := int(_id)
 	index := int(_index)
-	deck := demoData.Decks.GetByIndex(index)
+	deck := userData.Decks.GetByIndex(index)
 	card := deck.Deck.GetById(id)
 	if card == nil {
 		c.String(400, "card not found")
@@ -64,10 +65,11 @@ func removeFromDeck(c *gin.Context) {
 }
 
 func editDeck(c *gin.Context) {
+	userData := c.MustGet("user").(*gwent.PlayerData)
 	_index, _ := strconv.ParseInt(c.Param("index"), 10, 64)
 	index := int(_index)
 
-	deck := demoData.Decks.GetByIndex(index)
+	deck := userData.Decks.GetByIndex(index)
 
 	name := c.PostForm("name")
 	if name != "" {
@@ -79,11 +81,12 @@ func editDeck(c *gin.Context) {
 			c.String(400, "invalid faction")
 			return
 		}
-		(*demoData.Decks)[index] = demoData.NewPlayerDeck(newFaction)
+		(*userData.Decks)[index] = userData.NewPlayerDeck(newFaction)
 	}
 	showDeck(c)
 }
 func newDeck(c *gin.Context) {
+	userData := c.MustGet("user").(*gwent.PlayerData)
 	sfaction := c.PostForm("faction")
 	if sfaction == "" {
 		c.String(400, "need key 'faction' (string)")
@@ -94,6 +97,6 @@ func newDeck(c *gin.Context) {
 		c.String(400, err.Error())
 		return
 	}
-	*demoData.Decks = append(*demoData.Decks, demoData.NewPlayerDeck(faction))
-	c.Redirect(302, fmt.Sprintf("/deck/%d", len(*demoData.Decks)-1))
+	*userData.Decks = append(*userData.Decks, userData.NewPlayerDeck(faction))
+	c.Redirect(302, fmt.Sprintf("/deck/%d", len(*userData.Decks)-1))
 }

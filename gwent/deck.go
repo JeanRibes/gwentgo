@@ -12,14 +12,12 @@ func (playerDeck *PlayerDeck) Faction() Faction {
 }
 
 func (playerDeck *PlayerDeck) ToGameSide() *GameSide {
-	deck := &Cards{}
+	deck := &CardList{}
 	faction := playerDeck.Faction()
 	all := *playerDeck.Deck
 	for _, card := range all {
 		if card.Faction == faction || card.Faction == Neutral {
-			copied := card.Copy()
-			copied.Faction = faction
-			deck.Add(copied)
+			deck.Add(card.Copy().SetFaction(faction))
 		}
 	}
 	hand := InitHand(deck)
@@ -28,12 +26,10 @@ func (playerDeck *PlayerDeck) ToGameSide() *GameSide {
 
 func (playerDeck *PlayerDeck) AddToDeck(card *Card) {
 	MoveCard_list(playerDeck.Rest, playerDeck.Deck, card)
-	playerDeck.Deck.GroupSort(1)
 }
 
 func (playerDeck *PlayerDeck) RemoveFromDeck(card *Card) {
 	MoveCard_list(playerDeck.Deck, playerDeck.Rest, card)
-	playerDeck.Rest.GroupSort(1)
 }
 
 type Decks []*PlayerDeck
@@ -71,13 +67,13 @@ func NewPlayerData(pseudo string, cookie string) *PlayerData {
 	playerdata := &PlayerData{
 		Pseudo:     pseudo,
 		Cookie:     cookie,
-		OwnedCards: AllCardsList.Copy().Cards().Reindex().List().GroupSort(1),
+		OwnedCards: AllCardsList.Copy().GroupSort(1),
 	}
 	playerdata.Decks = &Decks{
 		playerdata.NewPlayerDeck(NorthernRealms),
-		playerdata.NewPlayerDeck(Nilfgaard),
+		/*playerdata.NewPlayerDeck(Nilfgaard),
 		playerdata.NewPlayerDeck(ScoiaTael),
-		playerdata.NewPlayerDeck(Monsters),
+		playerdata.NewPlayerDeck(Monsters),*/
 	}
 	return playerdata
 }
@@ -97,4 +93,41 @@ func (_decks *Decks) GetByIndex(index int) *PlayerDeck {
 		return nil
 	}
 	return decks[index]
+}
+
+func (deck *PlayerDeck) Fill() *PlayerDeck {
+	/*for _, card := range *deck.Rest {
+		log.Println(card.String())
+		deck.AddToDeck(card)
+	}*/
+	rest := *deck.Rest.Copy()
+	for i := 0; i < len(rest); i++ {
+		deck.AddToDeck(rest[i])
+	}
+	return deck
+}
+
+func (playerDeck *PlayerDeck) DrawHandDeck() (*CardList, *CardList) {
+	n := 10
+	hand := CardList{}
+	deck := playerDeck.Deck.Copy()
+
+	for hand.Len() < n {
+		hand.Draw(deck)
+	}
+	return &hand, deck
+}
+
+func (playerDeck *PlayerDeck) Eligible() bool {
+	if playerDeck.Deck.Len() < 22 {
+		return false
+	}
+	unit_cards := 0
+	for _, card := range *playerDeck.Deck {
+		if card.Strength > 0 || card.Effects.Has(Medic) || card.Effects.Has(Spy) {
+			//only Unit card have a strength > 0 (except Avallach and Havekar Healers)
+			unit_cards += 1
+		}
+	}
+	return unit_cards >= 22
 }

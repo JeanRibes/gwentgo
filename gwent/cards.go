@@ -1,3 +1,5 @@
+// Package gwent, API for a Gwynt game logic and data structures
+// It aims to reproduce the mini-game found in The Witcher 3 Wild Hunt, property of CDProjectRed
 package gwent
 
 import (

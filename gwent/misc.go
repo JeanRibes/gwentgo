@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"sort"
 	"strings"
 )
@@ -186,6 +185,11 @@ type Card struct {
 	score       int //cached score
 }
 
+func (card *Card) SetFaction(faction Faction) *Card {
+	card.Faction = faction
+	return card
+}
+
 func (card *Card) Picture() string {
 	if card.Image != "" {
 		return card.Image
@@ -254,6 +258,8 @@ func (eff Effect) String() string {
 		return "ImpenetrableFog"
 	case TorrentialRain:
 		return "TorrentialRain"
+	case Decoy:
+		return "Decoy"
 	default:
 		return "error!"
 	}
@@ -314,57 +320,30 @@ func (effect *Effect) UnmarshalJSON(data []byte) (err error) {
 	return err
 }
 
-type Cards map[int]*Card
-
-func MoveCard(source *Cards, dest *Cards, card *Card) {
+func MoveCard(source *CardList, dest *CardList, card *Card) {
 	dest.Add(card)
 	source.Remove(card)
 }
-func MoveCards(source *Cards, dest *Cards, cards *CardList) {
+func MoveCards(source *CardList, dest *CardList, cards *CardList) {
 	source.Removes(cards)
 	dest.Adds(cards)
 }
 
-func (cards *Cards) Add(card *Card) *Cards {
-	/*for i, _card := range *cards {
-		if i == card.Id {
-			log.Panicf("ID error: %s clashes with %s", card, _card)
-		}
-	}*/
-	_cards := *cards
-	_cards[card.Id] = card
-	return cards
-}
-
-func (cards *Cards) CheckIds() bool {
-	for i, card := range *cards {
-		if i != card.Id {
-			log.Panicf("ID clash: #%d should be %s", i, card)
-			return false
-		}
-	}
-	return true
-}
-
-func (cards *Cards) Adds(news *CardList) *Cards {
+func (cards *CardList) Adds(news *CardList) *CardList {
 	for _, card := range *news {
 		cards.Add(card)
 	}
 	return cards
 }
-func (cards *Cards) Remove(card *Card) *Cards {
-	delete(*cards, card.Id)
-	return cards
-}
 
-func (cards *Cards) Removes(to_remove *CardList) *Cards {
+func (cards *CardList) Removes(to_remove *CardList) *CardList {
 	for _, card := range *to_remove {
 		cards.Remove(card)
 	}
 	return cards
 }
 
-func (cards *Cards) Effects() Effects {
+func (cards *CardList) Effects() Effects {
 	effects := Effects{}
 	for _, card := range *cards {
 		effects = append(effects, card.Effects...)
@@ -372,7 +351,7 @@ func (cards *Cards) Effects() Effects {
 	return effects
 }
 
-func (cards *Cards) FindByName(name string) *CardList {
+func (cards *CardList) FindByName(name string) *CardList {
 	ret := CardList{}
 	for _, card := range *cards {
 		if card.Name == name {
@@ -382,7 +361,7 @@ func (cards *Cards) FindByName(name string) *CardList {
 	return &ret
 }
 
-func (cards *Cards) FindByName2(name string) (ret CardList) {
+func (cards *CardList) FindByName2(name string) (ret CardList) {
 	_cards := *cards
 	for key, card := range _cards {
 		if card.Name == name {
@@ -393,7 +372,7 @@ func (cards *Cards) FindByName2(name string) (ret CardList) {
 	return ret
 }
 
-func (cards *Cards) GetByName(name string) *Card {
+func (cards *CardList) GetByName(name string) *Card {
 	for _, card := range *cards {
 		if card.Name == name {
 			return card
@@ -402,23 +381,7 @@ func (cards *Cards) GetByName(name string) *Card {
 	return nil
 }
 
-func (cards *Cards) GetById(id int) *Card {
-	_cards := *cards
-	if card, ok := _cards[id]; ok {
-		return card
-	} else {
-		return nil
-	}
-	/*
-		for _, card := range *cards {
-				if card.Id == id {
-					return card
-				}
-			}
-	*/
-}
-
-func (cards *Cards) CountByName(name string) (count int) {
+func (cards *CardList) CountByName(name string) (count int) {
 	for _, card := range *cards {
 		if card.Name == name {
 			count += 1
@@ -427,55 +390,24 @@ func (cards *Cards) CountByName(name string) (count int) {
 	return count
 }
 
-func (cards *Cards) Has(card *Card) bool {
-	_cards := *cards
-	_, ok := _cards[card.Id]
-	return ok
-}
-
-func (cards *Cards) Copy() Cards {
-	out := Cards{}
+func (cards *CardList) ShallowCopy() *CardList {
+	out := CardList{}
 	for key, value := range *cards {
 		out[key] = value
 	}
-	return out
+	return &out
 }
 
-func (cards *Cards) Reindex() *Cards {
-	backup := cards.Copy()
-	cards.Clear()
-
-	i := 0
-	for _, card := range backup {
-		card.Id = i
-		i += 1
-		cards.Add(card)
-	}
-	return cards
-}
-
-func (cards *Cards) SortKeys(start int) int {
-	backup := cards.Copy()
-	cards.Clear()
-
+func (cards *CardList) SortKeys(start int) int {
 	i := start
-	for _, card := range backup {
+	for _, card := range *cards {
 		card.Id = i
 		i += 1
-		cards.Add(card)
 	}
 	return i
 }
 
-func (cards *Cards) String() string {
-	s := ""
-	for _, card := range *cards {
-		s += card.String() + "\n"
-	}
-	return s
-}
-
-func (cards *Cards) List() *CardList {
+func (cards *CardList) List() *CardList {
 	l := make(CardList, len(*cards))
 	i := 0
 	for _, card := range *cards {
@@ -485,17 +417,13 @@ func (cards *Cards) List() *CardList {
 	return &l
 }
 
-func (cards *Cards) SetFaction(faction Faction) *Cards {
+func (cards *CardList) SetFaction(faction Faction) *CardList {
 	_cards := *cards
 	for key, card := range _cards {
 		card.Faction = faction
 		_cards[key] = card
 	}
 	return &_cards
-}
-
-func (cards *Cards) Len() int {
-	return len(*cards)
 }
 
 /*type CardSlot enum
@@ -514,9 +442,8 @@ Deep Copy
 */
 func (in *CardList) Copy() *CardList {
 	out := make(CardList, len(*in))
-	for i, cp := range *in {
-		card := *cp
-		out[i] = &card
+	for i, card := range *in {
+		out[i] = card.Copy()
 	}
 	return &out
 }
@@ -532,12 +459,8 @@ func (list *CardList) String() string {
 	return s
 }
 
-func (list *CardList) Cards() *Cards {
+func (list *CardList) Cards() *CardList {
 	return ToCards(*list)
-}
-
-func (list *CardList) Removes(other *CardList) *CardList {
-	return list.Copy().Cards().Removes(other).List()
 }
 
 /*
@@ -610,7 +533,7 @@ func (list *CardList) GroupSort(max_passes int) *CardList {
 		list.group()
 		n += 1
 		if n > max_passes {
-			log.Printf("gave up sorting after %d passes\n", n)
+			//log.Printf("gave up sorting after %d passes\n", n)
 			return list
 		}
 	}
@@ -649,8 +572,13 @@ func (list *CardList) Remove(card *Card) *CardList {
 	if index < 0 {
 		panic("index < 0")
 	}
-	_list := *list
-	*list = append(_list[:index], _list[index+1:]...)
+
+	if list.Len() == 1 {
+		*list = CardList{}
+	} else {
+		_list := *list
+		*list = append(_list[:index], _list[index+1:]...)
+	}
 	return list
 }
 

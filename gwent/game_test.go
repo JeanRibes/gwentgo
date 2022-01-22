@@ -7,77 +7,66 @@ import (
 )
 
 func TestGame(t *testing.T) {
-	t.Skip()
-	game := Creategame()
+	pd := NewPlayerData("jsr022", "mjkjhlkjh")
+	deckA := pd.Decks.GetByName("NorthernRealms")
+	deckB := pd.Decks.GetByName("Monsters")
+
+	da := []int{0, 57, 56, 3, 8, 39, 9, 1, 20, 28}
+	//da := []int{0, 57, 56, 3, 8, 39, 9, 16, 20, 28}
+	for _, id := range da {
+		deckA.AddToDeck(deckA.Rest.GetById(id))
+	}
+	db := []int{1, 144, 181, 179, 180, 166, 9, 0, 26, 163}
+	//db:=[]int{1,144,181,179,180,166,9,18,26,163}
+	for _, id := range db {
+		deckB.AddToDeck(deckB.Rest.GetById(id))
+	}
+
+	assert.Equal(t, 10, deckA.Deck.Len())
+	assert.Equal(t, 10, deckB.Deck.Len())
+
+	game := GameFromDecks(deckA, deckB)
+	deckA, deckB = nil, nil
+
 	cardscount := game.Sort()
 	assert.Greaterf(t, cardscount, 0, "bad game sorting")
 	t.Logf("%d cards in that game", cardscount)
 
-	first := game.SideA.Hand.GetByName("geralt-of-rivia")
-	//t.Log("first move:", first)
-
-	game.PlayMove(first, first.Row, game.SideA, game.SideB)
+	geralt := game.SideA.Hand.GetByName("geralt-of-rivia")
+	game.PlayMove(geralt, geralt.Row, game.SideA, game.SideB)
 	if game.SideA.CloseCombat.CountByName("geralt-of-rivia") != 1 {
 		t.Fail()
 	}
-
-	//t.Log(game)
-	if card := game.SideA.Hand.GetByName(first.Name); card != nil {
-		if card.Id == first.Id {
+	if card := game.SideA.Hand.GetByName(geralt.Name); card != nil {
+		if card.Id == geralt.Id {
 			t.Fatal("card not removed from hand")
 		}
 	}
 
-	second := game.SideB.Hand.GetByName("dwarf-skirmisher")
-	//t.Log("second move:", second)
-	//t.Log(game.SideB.Hand.FindByName2("dwark"))
+	ciri := game.SideB.Hand.GetByName("cirilla-fiona-elen-riannon")
+	game.PlayMove(ciri, ciri.Row, game.SideB, game.SideA)
 
-	game.PlayMove(second, second.Row, game.SideB, game.SideA)
-	if game.SideB.CloseCombat.Len() != 3 {
-		t.Log(game)
-		t.Fatal("Muster didn't work")
+	for game.SideA.Hand.Len() > 0 && game.SideB.Hand.Len() > 0 {
+		ca := (*game.SideA.Hand)[0]
+		game.PlayMove(ca, ca.Row, game.SideA, game.SideB)
+
+		cb := (*game.SideB.Hand)[0]
+		game.PlayMove(cb, cb.Row, game.SideB, game.SideA)
 	}
+
+	sa, sb := game.Score()
 	//t.Log(game)
+	assert.Equal(t, 15+15+1+7+8, sa)
+	assert.Equal(t, 3*1+1+10+2, sb)
 
 	data, err := json.Marshal(game)
-	assert.NoError(t, err, "marshel json")
+	assert.NoError(t, err, "marshall json")
 	assert.NotZero(t, len(data))
-	//t.Log(string(data))
 
-	assert.Truef(t, game.Check(), "game init check")
-	assert.Equal(t, game.ScoreA(), 15)
-	assert.Equal(t, game.SideA.CloseCombat.GetByName("geralt-of-rivia").score, 15)
-	assert.Equal(t, game.ScoreB(), 9)
-
-	troiseiem := game.SideA.Hand.GetByName("villentretenmerth")
-	game.PlayMove(troiseiem, troiseiem.Row, game.SideA, game.SideB)
-
-	merged := game.Merge()
-	assert.Equal(t, len(merged), 5)
-
-	quatrieeme := game.SideB.Hand.GetByName("scorch")
-	game.PlayMove(quatrieeme, quatrieeme.Row, game.SideB, game.SideA)
-	assert.Equal(t, game.ScoreA(), 4)
-
-	cinquieme := game.SideA.Hand.GetByName("blue-stripes-commando")
-	game.PlayMove(cinquieme, cinquieme.Row, game.SideA, game.SideB)
-	assert.Equal(t, game.ScoreA(), 16)
-
-	sixieme := game.SideB.Hand.GetByName("biting-frost")
-	game.PlayMove(sixieme, Weather, game.SideB, game.SideA)
-
-	assert.Truef(t, game.WeatherCards.Effects().Has(BitingFrost), "no biting frost")
-
-	assert.Equal(t, game.ScoreA(), 4)
-	assert.Equal(t, game.ScoreB(), 3)
-
-	septieme := game.SideA.Hand.GetByName((*AllCardsList)[9].Name)
-	assert.Equal(t, game.SideA.Hand.Len(), 7)
-	game.PlayMove(septieme, septieme.Row, game.SideA, game.SideB)
-	assert.Equal(t, game.SideA.Hand.Len(), 8)
-	assert.Equal(t, game.ScoreB(), 3)
-
-	huitieme := game.SideB.Hand.GetByName("saesenthessis")
-	game.PlayMove(huitieme, RangedCombat, game.SideB, game.SideA)
-	assert.Equal(t, game.ScoreB(), 13)
+	game.Pass(game.SideA)
+	assert.False(t, game.RoundFinished())
+	assert.Equal(t, 0, game.Round())
+	game.Pass(game.SideB)
+	assert.Equal(t, 1, game.Round())
+	assert.Equal(t, game.History[0], PlayerA)
 }
