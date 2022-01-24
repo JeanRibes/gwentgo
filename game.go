@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"gwentgo/gwent"
+	"gwentgo/ia"
 	"log"
 	"strconv"
 )
@@ -75,52 +76,6 @@ func getRowAndCard(c *gin.Context) (row gwent.Row, cardid int) {
 	return gwent.RowFromString(srow), int(id)
 }
 
-/*
-var game *gwent.Game = gwent.Creategame()
-
-func demoGameHandler(c *gin.Context) {
-	game.Sort()
-	log.Print(game)
-	displayBoard(c, "/move", "game.html", false, game.Player(), game.Enemy())
-}
-
-
-
-func demoMove(c *gin.Context) {
-	row, cardid := getRowAndCard(c)
-	card := game.GetCardById(cardid)
-
-	if card != nil {
-		log.Println(game.Player().Siege)
-		medicEffect := game.PlayMove(card, row, game.Player(), game.Enemy())
-		log.Println(game.Player().Siege)
-		if medicEffect {
-			println("medic !!")
-			displayBoard(c, "/move", "table.html", true, game.Player(), game.Enemy())
-		} else {
-			game.Switch()
-			displayBoard(c, "/move", "table.html", false, game.Player(), game.Enemy())
-		}
-	} else {
-		c.String(400, "card not found")
-	}
-}
-
-func demoPass(c *gin.Context) {
-	game.Pass(game.Player())
-	if game.Finished() {
-		log.Printf("rounds won: %s\n", game.History)
-		c.String(200, game.Winner().String()+" won !")
-		return
-	}
-	//game.NextRound()
-	displayBoard(c, "/move", "table.html", false, game.Player(), game.Enemy())
-}
-
-func demoChoice(c *gin.Context) {
-	displayBoard(c, "/move", "game.html", true, game.Player(), game.Enemy())
-}
-*/
 var soloGames = map[string]*gwent.Game{} //cookie->game against IA
 
 func startSoloGame(c *gin.Context) {
@@ -197,7 +152,7 @@ func moveSoloGame(c *gin.Context) {
 	}
 	sologame.Turn = gwent.PlayerB
 
-	if ia_card, row := gwent.IaMove(sologame, ia_bot, player); ia_card != nil {
+	if ia_card, row := ia.IaMove(sologame, ia_bot, player); ia_card != nil {
 		sologame.PlayMove(ia_card, row, ia_bot, player)
 	} else {
 		sologame.Pass(ia_bot)

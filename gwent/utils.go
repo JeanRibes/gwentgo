@@ -78,3 +78,39 @@ func Creategame() *Game {
 
 	return NewGame(deckP1, handP1, deckP2, handP2)
 }
+
+type CardType enum
+
+const (
+	TypeNormal  CardType = iota // basic, heroes, spies, healers
+	TypeWeather                 // rain/frost/fog/sun
+	TypeSpecial                 // scorch, morale boost
+)
+
+func (card *Card) Type() CardType {
+	if card.Row == Weather {
+		return TypeWeather
+	}
+	if card.Effects.Has(Scorch) && card.Strength == 0 {
+		return TypeSpecial
+	}
+	return TypeNormal
+}
+
+func (hand *CardList) GetByEffect(effect Effect) *Card {
+	for _, card := range *hand {
+		if card.Effects.Has(effect) {
+			return card
+		}
+	}
+	return nil
+}
+
+func (hand *CardList) GetByType(cardtype CardType) *Card {
+	for _, card := range *hand {
+		if card.Type() == cardtype {
+			return card
+		}
+	}
+	return nil
+}

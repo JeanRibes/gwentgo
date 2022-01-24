@@ -45,8 +45,9 @@ type Game struct {
 	SideA        *GameSide
 	SideB        *GameSide
 
-	Turn    Turn
-	History []Turn
+	Turn      Turn
+	History   []Turn
+	Recording []Record `json:"-"`
 }
 
 func NewGame(
@@ -65,6 +66,7 @@ func NewGame(
 		SideB:        sb,
 		History:      []Turn{},
 		Turn:         PlayerA,
+		Recording:    []Record{},
 	}
 }
 
@@ -89,6 +91,7 @@ func (g *Game) fixSides() {
 }
 
 func (g *Game) Pass(side *GameSide) {
+	g.recordPass(side.Side)
 	side.Passed = true
 	if !g.NextRound() { //if only one player passed, switch turn
 		g.Switch()
@@ -126,11 +129,11 @@ func (player *GameSide) Merge() CardList {
 	return arr
 }
 
-func (game *Game) Merge() CardList {
+func (game *Game) Merge() *CardList {
 	arr := CardList{}
 	arr = append(arr, game.SideA.Merge()...)
 	arr = append(arr, game.SideB.Merge()...)
-	return arr
+	return &arr
 }
 
 func (row *CardList) Clean() *CardList {
@@ -240,28 +243,34 @@ func (gs *GameSide) GetCardById(id int) *Card {
 }
 
 func (g *Game) Player() *GameSide {
-	if g.Turn == PlayerA {
-		return g.SideA
-	}
-	if g.Turn == PlayerB {
-		return g.SideB
-	}
-	return nil
+	return g.Side(g.Turn)
 }
 func (g *Game) Enemy() *GameSide {
-	if g.Turn == PlayerA {
-		return g.SideB
-	}
-	if g.Turn == PlayerB {
-		return g.SideA
-	}
-	return nil
+	return g.Side(g.SideEnemy())
 }
 func (g *Game) SideEnemy() Turn {
 	if g.Turn == PlayerA {
 		return PlayerB
 	}
 	if g.Turn == PlayerB {
+		return PlayerA
+	}
+	return Tie
+}
+func (g *Game) Side(side Turn) *GameSide {
+	if side == PlayerA {
+		return g.SideA
+	}
+	if side == PlayerB {
+		return g.SideB
+	}
+	return nil
+}
+func (g *Game) EnemySide(side Turn) Turn {
+	if side == PlayerA {
+		return PlayerB
+	}
+	if side == PlayerB {
 		return PlayerA
 	}
 	return Tie

@@ -26,6 +26,7 @@ func (game *Game) PlayMove(
 	}
 
 	if player.Hand.Has(card) {
+		game.recordMove(player.Side, card, slotRow)
 		player.MedicAction = false
 		game.WeatherClean() //needed at the beginning, otherwise debuff may apply in presence of the Clear weather
 
@@ -203,12 +204,12 @@ func (game *Game) Scorch() {
 
 	cards := game.Merge()
 	maxScore := 0
-	for _, card := range cards {
+	for _, card := range *cards {
 		if card.score > maxScore && !card.Effects.Has(Hero) {
 			maxScore = card.score
 		}
 	}
-	for _, card := range cards {
+	for _, card := range *cards {
 		if card.score == maxScore && !card.Effects.Has(Hero) {
 			card.score = -1
 			log.Print("scorched", card)
@@ -265,6 +266,7 @@ func (g *Game) NextRound() bool {
 		round_winner := g.RoundWinner()
 
 		g.History = append(g.History, round_winner)
+		g.recordRound(round_winner)
 
 		if g.Round() < MAX_ROUND {
 			g.SideA.EndRound()
@@ -287,7 +289,8 @@ func (g *Game) Finished() bool {
 		return false
 	}
 	side, max := g.MaxRoundsWon()
-	if side == Tie && max > 1 { //game ends in a tie
+	return g.Round() == MAX_ROUND || (max > 1 && side != Tie)
+	if side == Tie { //game ends in a tie
 		return g.Round() == MAX_ROUND
 	} else {
 		return g.Round() == MAX_ROUND || max > 1

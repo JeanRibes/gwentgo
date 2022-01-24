@@ -32,7 +32,7 @@ func saveData() {
 func loadData() {
 	f, err := os.Open("user_db.json")
 	if err != nil {
-		log.Printf("open error", err.Error())
+		log.Printf("open error: %s", err.Error())
 		return
 	}
 	if err := json.NewDecoder(f).Decode(&userDb); err != nil {
