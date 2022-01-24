@@ -570,7 +570,7 @@ func (list *CardList) Has(card *Card) bool {
 func (list *CardList) Remove(card *Card) *CardList {
 	index := list.Index(card)
 	if index < 0 {
-		panic("index < 0")
+		panic(fmt.Errorf("index < 0: card %s is not present in the list", card.String()))
 	}
 
 	if list.Len() == 1 {
@@ -619,12 +619,14 @@ func (turn Turn) String() string {
 func (turn *Turn) UnmarshalJSON(data []byte) (err error) {
 	str := string(data)
 	str = str[1 : len(str)-1]
+	*turn = Tie
 	if str == "PlayerA" {
 		*turn = PlayerA
 	}
 	if str == "PlayerB" {
 		*turn = PlayerB
-	} else {
+	}
+	if str == "Tie" {
 		*turn = Tie
 	}
 	return nil
@@ -634,4 +636,8 @@ func (turn Turn) MarshalJSON() ([]byte, error) {
 	buffer.WriteString(turn.String())
 	buffer.WriteRune('"')
 	return buffer.Bytes(), nil
+}
+
+func (card *Card) IsUnit() bool {
+	return card.Strength > 0 || card.Effects.Has(Spy) || card.Effects.Has(Medic)
 }

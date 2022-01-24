@@ -2,7 +2,8 @@
     <div class="vertical">
         <div class="board-vertical">
             <div class="leader-card enemy">
-                <img class="leader-img" src="/static/Emhyr-var-Emreis-His-Imperial-Majesty-gwent-card.jpg"/>
+                <img alt="{{.Enemy.Leader.DisplayName}}" class="leader-img" src="/static/{{.Enemy.Leader.Image}}"
+                     title="{{.Enemy.Leader.DisplayName}}, {{.Enemy.Leader.Title}}"/>
             </div>
 
             <div class="leader enemy">
@@ -11,6 +12,9 @@
                 {{.Enemy.Hand | len}} 🂠
                 <br>
                 {{template "lives" .Lives.Enemy}}
+                {{if .Enemy.Passed}}
+                Passed !
+                {{end}}
                 <div class="main-score">
                     {{.Enemy.CachedScore}}
                 </div>
@@ -30,8 +34,11 @@
                     {{template "card" .}}
                     {{end}}
                 </div>
-                <button hx-post="/pass">Pass</button>
-                round {{.Round}}
+                <div class="row-title">
+                    <button class="button" onclick="pass(event)">Pass</button>
+                    <br/>
+                    Round {{.Round}}
+                </div>
             </div>
 
             <div class="leader player">
@@ -40,18 +47,32 @@
                 {{.Player.Hand | len}} 🂠
                 <br/>
                 {{template "lives" .Lives.Player}}
+                {{if .Player.Passed}}
+                Passed !
+                {{end}}
                 <div class="main-score">
                     {{.Player.CachedScore}}
                 </div>
             </div>
             <div class="leader-card player">
-                <img class="leader-img" src="/static/Eredin-Commander-of-the-Red-Riders-gwent-card.jpg"/>
+                <img alt="{{.Player.Leader.DisplayName}}" class="leader-img" src="/static/{{.Player.Leader.Image}}"
+                     title="{{.Player.Leader.DisplayName}}, {{.Player.Leader.Title}}"/>
             </div>
         </div>
     </div>
     <div class="board">
         <div class="side enemy">
             <div class="rows">
+                <div class="row">
+                    <div class="row-content">
+                        {{range .Enemy.Hand}}
+                        {{template "card" . }}
+                        {{end}}
+                        <div class="row-placeholder">Enemy</div>
+                    </div>
+                </div>
+                <br/>
+
                 <div class="row">
                     <div class="row-score enemy">
                         {{.Enemy.ScoreSiege}}
@@ -202,4 +223,13 @@
             </div>
         </div>
     </div>
+    {{template "passed" .}}
+    {{if .Player.Passed}}
+    <script>
+        setTimeout(() => {
+            console.log("pass auto")
+            pass(null);
+        }, 1000)
+    </script>
+    {{end}}
 </div>

@@ -4,12 +4,34 @@
     <meta charset="UTF-8">
     <title>Deck building</title>
     <link href="/static/deck.css" rel="stylesheet"/>
+    <link href="/static/style.css" rel="stylesheet"/>
+    <style>
+
+        nav {
+            margin: auto;
+            width: fit-content;
+        }
+
+        .threecolumn {
+            display: grid;
+            grid-template-columns: 2fr 1fr 2fr;
+        }
+
+        .div-btn {
+            margin: auto;
+        }
+
+        .button.invalid {
+            visibility: hidden;
+        }
+    </style>
 </head>
 <body>
-<a href="/deck/{{.PrevDeck}}">Previous</a>
-<a href="/deck/{{.NextDeck}}">Next</a>
-<h1>{{.Name}}</h1>
-<em>{{.Faction}}</em>
+<nav>
+    <a class="button" href="/deck/{{.PrevDeck}}">← Previous</a>
+    <h1 style="display: inline; color: #ff856b">{{.Name}}</h1>
+    <a class="button" href="/deck/{{.NextDeck}}">Next →</a>
+</nav>
 
 <div class="twocolumn">
     <form action="." method="post">
@@ -27,7 +49,6 @@
 
         <button type="submit">Change</button>
     </form>
-
     <form action="/deck/" method="post">
         <label for="faction-input2">Faction</label>
         <select id="faction-input2" name="faction">
@@ -40,9 +61,18 @@
     </form>
 </div>
 
-<header class="twocolumn">
-    <h1>All Cards</h1>
-    <h1>Deck</h1>
+<header class="threecolumn">
+    <div>
+        <h1>All Cards</h1>
+    </div>
+    <div class="div-btn">
+        <p>Faction: <em>{{.Faction}}</em></p>
+        <a class="button" href="start/" id="enter-game" style="font-size: 1.3rem">Enter game</a>
+        <p>Unit cards: <b id="rating">0/22</b></p>
+    </div>
+    <div>
+        <h1>Deck</h1>
+    </div>
 </header>
 
 <main class="twocolumn">
@@ -52,7 +82,7 @@
              ondrop="dropCard(event)">
 
         {{range .Rest}}
-        <img class="card" draggable="true"
+        <img class="card {{if .IsUnit}}unit{{end}}" draggable="true"
              id="card-{{.Id}}"
              ondblclick="doubleClick(event, '{{.Id}}')"
              ondragend="endDragCard(event)"
@@ -67,7 +97,7 @@
             ondrop="dropCard(event)">
 
         {{range .Deck}}
-        <img class="card" draggable="true"
+        <img class="card {{if .IsUnit}}unit{{end}}" draggable="true"
              id="card-{{.Id}}"
              ondblclick="doubleClick(event, '{{.Id}}')"
              ondragend="endDragCard(event)"
@@ -77,6 +107,34 @@
     </section>
 </main>
 <script>
+    function rating() {
+        let units = 0;
+        document.getElementById('deck').childNodes.forEach((item) => {
+            try {
+                if (item.classList.contains('unit')) {
+                    units += 1;
+                }
+            } catch (e) {
+            }
+        });
+        let rating = document.getElementById('rating');
+        let btn = document.getElementById('enter-game')
+        if (units < 22) {
+            rating.classList.add('invalid')
+            rating.classList.remove('valid')
+            btn.classList.add('invalid')
+            btn.classList.remove('valid')
+        } else {
+            rating.classList.add('valid')
+            rating.classList.remove('invalid')
+            btn.classList.add('valid')
+            btn.classList.remove('invalid')
+        }
+        rating.innerText = `${units}/22`;
+    }
+
+    rating()
+
     function doubleClick(event, cardid) {
         if (event.target.parentNode.id === 'rest') {
             fetch('add/' + cardid, {
@@ -85,18 +143,15 @@
 
             let fig = document.getElementById(event.target.id)
             document.getElementById('deck').appendChild(fig);
-            return;
-        }
-
-        if (event.target.parentNode.id === 'deck') {
+        } else /*(event.target.parentNode.id === 'deck')*/{
             fetch('remove/' + cardid, {
                 method: "POST"
             }).then(r => console.log(r.url))
 
             let fig = document.getElementById(event.target.id)
             document.getElementById('rest').appendChild(fig);
-            return;
         }
+        rating();
     }
 
     function startDragCard(event, cardid) {
@@ -138,10 +193,13 @@
                 method: "POST"
             }).then(console.log)
         }
+        rating();
     }
 
     function endDragCard(event) {
-        document.getElementById('indic').remove();
+        let indic = document.getElementById('indic');
+        if (indic !== null)
+            indic.remove();
     }
 
     function onDragOver(event) {

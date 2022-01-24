@@ -6,14 +6,21 @@ import (
 	"net/http"
 )
 
-var demoData = gwent.NewPlayerData("jsr022", "mjkjhlkjh")
+var demoData = gwent.NewPlayerData("demouser", "mjkjhlkjh")
+
+func init() {
+	for _, deck := range *demoData.Decks {
+		deck.Name = "Demo deck !!!"
+	}
+}
 
 func UserDataMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		cookie, err := c.Cookie("user")
 		if err != nil {
-			c.Set("user", demoData)
-			return
+			/*c.Set("user", demoData)
+			c.Next()
+			return*/
 			c.String(http.StatusUnauthorized, "unauthorized, no cookie")
 			return
 		}

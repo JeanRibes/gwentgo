@@ -36,7 +36,7 @@ func init() {
 }
 
 func setcoookie(c *gin.Context, key string, value string) {
-	c.SetCookie(key, value, 3600, "/", "localhost", false, false)
+	c.SetCookie(key, value, 360000000, "/", "localhost", false, false)
 }
 
 func waitingRoom(c *gin.Context, key string) {
@@ -55,8 +55,11 @@ func waitingRoom(c *gin.Context, key string) {
 }
 
 func main() {
+	println("Loading data...")
 	load()
 	loadData()
+	println("done")
+	go backupRoutine()
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
@@ -66,8 +69,9 @@ func main() {
 		saveData()
 		os.Exit(0)
 	}()
-
-	r := gin.Default()
+	logger := gin.Logger()
+	r := gin.New()
+	//r.Use(gin.Recovery())
 	r.LoadHTMLGlob("templates/*")
 	r.Static("/static", "./static")
 	r.GET("/ping", func(c *gin.Context) {
@@ -80,7 +84,7 @@ func main() {
 			Lobbies map[string]Lobby
 		}{Lobbies: lobbies})
 	})
-	r.GET("/lobby", func(c *gin.Context) {
+	r.GET("/lobby", logger, func(c *gin.Context) {
 		s := `<section id="Lobbies" hx-swap-oob="true">
 <button hx-get="/lobby">Refresh Lobbies</button>
 <ul>`
@@ -90,7 +94,7 @@ func main() {
 		c.String(200, s+"</ul></section>")
 	})
 
-	r.GET("/join/:key", func(c *gin.Context) {
+	r.GET("/join/:key", logger, func(c *gin.Context) {
 		key := c.Param("key")
 		lobby, exists := lobbies[key]
 		if exists {
@@ -107,7 +111,7 @@ func main() {
 		}
 	})
 
-	r.POST("/create", func(c *gin.Context) {
+	r.POST("/create", logger, func(c *gin.Context) {
 		key := RandomString(16)
 		cookie := RandomString(16)
 		lobbies[key] = Lobby{
@@ -121,7 +125,7 @@ func main() {
 		waitingRoom(c, key)
 	})
 
-	r.GET("/info", func(c *gin.Context) {
+	r.GET("/info", logger, func(c *gin.Context) {
 		cookie, err := c.Cookie("gamecookie")
 		if cookie == "" || err != nil {
 			c.String(400, "plz join a game")
@@ -135,7 +139,7 @@ func main() {
 		}
 	})
 
-	r.GET("/waiting", func(c *gin.Context) {
+	r.GET("/waiting", logger, func(c *gin.Context) {
 		cookie, err := c.Cookie("gamekey")
 		if cookie == "" || err != nil {
 			log.Print(cookie, err)
@@ -144,31 +148,37 @@ func main() {
 		}
 		waitingRoom(c, cookie)
 	})
-	r.GET("/save", func(c *gin.Context) {
+	r.GET("/save", logger, func(c *gin.Context) {
 		save()
 		c.String(200, "saved !")
 	})
 
 	//r.GET("/game", gameHandler)
-	r.GET("/demo", demoGameHandler)
+
+	/*r.GET("/demo", demoGameHandler)
 	r.POST("/move", demoMove)
 	r.POST("/pass", demoPass)
 
-	r.GET("/choicedemo", demoChoice)
+	r.GET("/choicedemo", demoChoice)*/
 
-	r.GET("/register", func(c *gin.Context) {
+	r.GET("/register", logger, func(c *gin.Context) {
 		c.File("templates/register.html")
 	})
-	r.POST("/register", register)
+	r.POST("/register", logger, register)
 
 	r.Group("/deck").
-		Use(UserDataMiddleware()).
+		Use(logger, UserDataMiddleware()).
 		GET("/:index/", showDeck).
 		POST("/:index/", editDeck).
 		POST("/", newDeck).
+		GET("/:index/start", UserDataMiddleware(), startSoloGame).
 		POST("/:index/add/:id", addToDeck).
 		POST("/:index/remove/:id", removeFromDeck)
 
+	r.POST("/game", logger, moveSoloGame)
+	r.GET("/game", logger, showSoloGame)
+
+	println("starting server")
 	r.Run() // listen and serve on 0.0.0.0:8080
 }
 
@@ -197,7 +207,7 @@ func load() {
 	}
 	var db Db
 	if err := json.NewDecoder(f).Decode(&db); err != nil {
-		panic(err)
+		log.Println(err)
 	}
 	if db.Games != nil {
 		games = db.Games

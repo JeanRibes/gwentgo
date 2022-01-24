@@ -2,23 +2,31 @@ body {
     box-sizing: border-box;
 }
 
-header > h1 {
+header > div > h1 {
     text-align: center;
+    padding-top: 3rem;
 }
 
 .twocolumn {
-    width: 100%;
+    width: 95%;
     display: grid;
     grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    margin: auto;
 }
 
 section {
-    border: 1px solid red;
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-start;
     align-items: flex-start;
     align-content: flex-start;
+
+    border: 1px solid var(--border-color);
+    background-color: var(--row-color);
+    padding: 1rem;
+    border-radius: 1rem;
+    box-shadow: inset 0 0 22px black;
 }
 
 section > * {
@@ -34,7 +42,7 @@ section > * {
 }
 
 .card:hover {
-    border: 3px solid orangered;
+    border: 3px solid var(--highlight-color);
 }
 
 #indic {
@@ -42,3 +50,12 @@ section > * {
     height: 410px;
     background-color: grey;
 }
+
+.invalid {
+    color: var(--invalid-color);
+}
+
+.valid {
+    color: var(--valid-text-color);
+}
+

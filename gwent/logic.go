@@ -41,6 +41,9 @@ func (game *Game) PlayMove(
 					row = player.GetRow(slotRow)
 				}
 			}
+			if row == nil {
+				panic("row is nil")
+			}
 			MoveCard(player.Hand, row, card)
 			//log.Println("moved card "+card.String())
 
@@ -55,6 +58,7 @@ func (game *Game) PlayMove(
 				if player.Heap.Len() > 0 {
 					//player.DrawHandDeck.Draw(player.Heap)
 					player.MedicAction = true
+					game.Score()
 					return true
 				}
 			}
@@ -77,6 +81,7 @@ func (game *Game) PlayMove(
 			enemy.Score(game.WeatherCards.Effects())
 		}
 		//game.Switch()
+		game.Score()
 	}
 	return false
 }
@@ -158,11 +163,9 @@ func (row CardList) Score(weatherDebuff bool) (sum int) {
 			tightBonded = append(tightBonded, card)
 		}
 	}
-
-	for _, card := range tightBonded {
-		/*card.score *= tightBonds.Get(card)*/
-		if tightBonds.Get(card) >= 2 {
-			card.score *= 2
+	for _, card := range row {
+		if card.Effects.Has(TightBond) {
+			card.score *= tightBonds.Get(card)
 		}
 	}
 	sum = 0
@@ -218,12 +221,12 @@ func (gs *GameSide) ScorchAlt(card *Card) {
 	rowToScorch := gs.GetRow(card.Row)
 	maxScore := 0
 	for _, enemy_card := range *rowToScorch {
-		if enemy_card.score > maxScore && !card.Effects.Has(Hero) {
+		if enemy_card.score > maxScore && !enemy_card.Effects.Has(Hero) {
 			maxScore = enemy_card.score
 		}
 	}
 	for _, enemy_card := range *rowToScorch {
-		if enemy_card.score == maxScore && !card.Effects.Has(Hero) {
+		if enemy_card.score == maxScore && !enemy_card.Effects.Has(Hero) {
 			MoveCard(rowToScorch, gs.Heap, enemy_card)
 		}
 	}
@@ -270,7 +273,7 @@ func (g *Game) NextRound() bool {
 				g.Turn = round_winner //winner starts new round
 			}
 		}
-
+		g.Score() // update the score
 		return true
 	}
 	/*if g.Round() > MAX_ROUND {

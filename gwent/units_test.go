@@ -95,6 +95,9 @@ func TestCards_Copy(t *testing.T) {
 func TestEffects_Has(t *testing.T) {
 	card := AllCardsMap["biting-frost"]
 	assert.True(t, card.Effects.Has(BitingFrost))
+
+	geralt := AllCardsMap["geralt-of-rivia"]
+	assert.True(t, geralt.Effects.Has(Hero))
 }
 
 func TestGame_RoundWinner(t *testing.T) {
@@ -248,10 +251,30 @@ func TestPlayerDeck_AddToDeck(t *testing.T) {
 
 func TestCardList_SortKeys(t *testing.T) {
 	hand := genHand()
-	t.Log(hand)
+	//t.Log(hand)
 	hand.SortKeys(10)
-	t.Log(hand)
+	//t.Log(hand)
 	for _, card := range *hand {
 		assert.Greaterf(t, card.Id, 9, "sorting ids failed")
 	}
+}
+
+func TestGame_LivesLeft(t *testing.T) {
+	game := Game{
+		SideA:   &GameSide{},
+		SideB:   &GameSide{},
+		History: []Turn{},
+	}
+	assert.Equal(t, 2, game.LivesLeft(PlayerA))
+	game.History = []Turn{Tie}
+	assert.Equal(t, 1, game.LivesLeft(PlayerA))
+	assert.Equal(t, 1, game.LivesLeft(PlayerB))
+	game.History = []Turn{Tie, PlayerA}
+	assert.Equal(t, 0, game.LivesLeft(PlayerB))
+	assert.Equal(t, 1, game.LivesLeft(PlayerA))
+
+	game.History = []Turn{PlayerA, PlayerA}
+	assert.Equal(t, 0, game.LivesLeft(PlayerB))
+	assert.Equal(t, 2, game.LivesLeft(PlayerA))
+
 }

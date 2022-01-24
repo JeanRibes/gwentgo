@@ -4,27 +4,31 @@
     <meta charset="UTF-8">
     <title>HTML5 Gwynt</title>
     <link href="/static/style.css" rel="stylesheet"/>
-
-    <style>
-
-    </style>
+    <link href="/static/game.css" rel="stylesheet"/>
 
 </head>
 <body>
 
 {{template "table.html" .}}
 
-<a href="/demo">refresh</a>
+<a class="button" href="{{.Url}}">refresh</a>
 
 <form id="form-play-move" action="{{.Url}}" method="post">
-    <label for="card-id">Card ID to play</label>
-    <input name="id" id="card-id" type="number">
-
-    <label for="card-row">Row to play card (CloseCombat, RangedCombat, Siege)</label>
-    <input name="row" id="card-row" type="text">
-    <button id="form-play-submit" type="submit">Play</button>
+    <fieldset>
+        <legend>Manual play</legend>
+        <label for="card-id">Card ID to play</label>
+        <br/>
+        <input id="card-id" name="id" type="number">
+        <br/>
+        <label for="card-row">Row to play card (CloseCombat, RangedCombat, Siege)</label>
+        <br/>
+        <input id="card-row" name="row" type="text">
+        <br/>
+        <button class="button" id="form-play-submit" type="submit">Play</button>
+    </fieldset>
 </form>
 <script>
+    var passed = false;
     let highlightColor = "peru";
     let normalRows = ['Weather', 'CloseCombat', 'RangedCombat', 'Siege']
 
@@ -139,6 +143,10 @@
             }
         })
     }
+
+    function pass(event) {
+        playMove(-1, "Weather")
+    }
 </script>
 <script src="/static/htmx-1.6.1.js"></script>
 </body>
@@ -179,5 +187,15 @@ Effects:
 {{if . | eq 0}}
 <span class="death">⬢</span>
 <span class="death">⬢</span>
+{{end}}
+{{end}}
+
+{{define "passed"}}
+{{if .Player.Passed}}
+{{if not .Enemy.Passed}}
+<script>
+    passed = true;
+</script>
+{{end}}
 {{end}}
 {{end}}

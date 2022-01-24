@@ -1,13 +1,16 @@
 package gwent
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 )
 
 type GameSide struct {
-	Hand *CardList //what the player sees and can choose to play
-	Deck *CardList //the rest of the cards, that may be used with spies
-	Heap *CardList //discarded cards, that may come back to hand with Medics
+	Leader *Leader
+	Hand   *CardList //what the player sees and can choose to play
+	Deck   *CardList //the rest of the cards, that may be used with spies
+	Heap   *CardList //discarded cards, that may come back to hand with Medics
 
 	CloseCombat  *CardList
 	RangedCombat *CardList
@@ -20,6 +23,7 @@ type GameSide struct {
 
 	Passed      bool
 	MedicAction bool
+	Side        Turn
 }
 
 func NewGameSide(deck *CardList, hand *CardList) *GameSide {
@@ -31,6 +35,8 @@ func NewGameSide(deck *CardList, hand *CardList) *GameSide {
 		RangedCombat: &CardList{},
 		Siege:        &CardList{},
 		Passed:       false,
+		Side:         Tie,
+		Leader:       Leaders["foltest-king-of-temeria"],
 	}
 }
 
@@ -49,19 +55,37 @@ func NewGame(
 	deckB *CardList,
 	handB *CardList,
 ) *Game {
+	sa := NewGameSide(deckA, handA)
+	sb := NewGameSide(deckB, handB)
+	sa.Side = PlayerA
+	sb.Side = PlayerB
 	return &Game{
 		WeatherCards: &CardList{},
-		SideA:        NewGameSide(deckA, handA),
-		SideB:        NewGameSide(deckB, handB),
+		SideA:        sa,
+		SideB:        sb,
 		History:      []Turn{},
 		Turn:         PlayerA,
 	}
 }
 
-func GameFromDecks(a *PlayerDeck, b *PlayerDeck) *Game {
+func GameFromDecks(a *PlayerDeck, b *PlayerDeck) (*Game, error) {
+	if !a.Eligible() {
+		return nil, fmt.Errorf("deck %s is ineligible for gameplay", a.Name)
+	}
+	if !b.Eligible() {
+		return nil, fmt.Errorf("deck %s is ineligible for gameplay", b.Name)
+	}
 	ah, ad := a.DrawHandDeck()
 	bh, bd := b.DrawHandDeck()
-	return NewGame(ad, ah, bd, bh)
+	game := NewGame(ad, ah, bd, bh)
+	game.SideA.Leader = a.Leader
+	game.SideB.Leader = b.Leader
+	return game, nil
+}
+
+func (g *Game) fixSides() {
+	g.SideA.Side = PlayerA
+	g.SideB.Side = PlayerB
 }
 
 func (g *Game) Pass(side *GameSide) {
@@ -243,6 +267,7 @@ func (g *Game) SideEnemy() Turn {
 	return Tie
 }
 func (g *Game) Switch() *Game {
+	g.fixSides()
 	if g.SideA.Passed {
 		g.Turn = PlayerB
 		return g
@@ -299,12 +324,28 @@ func (g *Game) MaxRoundsWon() (_ Turn, rounds_won int) {
 	return Tie, -1
 }
 
-func (g *Game) LivesLeft(side Turn) (lives int) {
-	lives = 2
+func (g *Game) LivesLeft(side Turn) int {
+	lives := 2
 	for _, who_won := range g.History {
 		if who_won != side {
-			lives -= 2
+			lives -= 1
 		}
 	}
 	return lives
+}
+
+func (g *Game) DeepCopy() *Game {
+	data, err := json.Marshal(g)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+	var copied Game
+	if err := json.Unmarshal(data, &copied); err != nil {
+		log.Println("unable to unmarshal", err)
+		log.Printf("%s", data)
+		return nil
+	}
+	//copied.Turn=g.Turn
+	return &copied
 }

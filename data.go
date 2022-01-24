@@ -5,6 +5,7 @@ import (
 	"gwentgo/gwent"
 	"log"
 	"os"
+	"time"
 )
 
 //cookie -> data
@@ -35,7 +36,14 @@ func loadData() {
 		return
 	}
 	if err := json.NewDecoder(f).Decode(&userDb); err != nil {
-		panic(err)
-		//log.Println(err)
+		log.Println(err)
+	}
+}
+
+func backupRoutine() {
+	for {
+		save()
+		saveData()
+		time.Sleep(time.Second * 10)
 	}
 }

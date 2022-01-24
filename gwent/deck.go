@@ -1,5 +1,7 @@
 package gwent
 
+import "fmt"
+
 type PlayerDeck struct {
 	Name   string
 	Leader *Leader
@@ -109,13 +111,17 @@ func (deck *PlayerDeck) Fill() *PlayerDeck {
 
 func (playerDeck *PlayerDeck) DrawHandDeck() (*CardList, *CardList) {
 	n := 10
+	if playerDeck.Deck.Len() < n {
+		panic(fmt.Errorf("deck %s is too small (%d)", playerDeck.Name, playerDeck.Deck.Len()))
+	}
 	hand := CardList{}
 	deck := playerDeck.Deck.Copy()
 
 	for hand.Len() < n {
 		hand.Draw(deck)
 	}
-	return &hand, deck
+
+	return hand.GroupSort(10), deck.GroupSort(10)
 }
 
 func (playerDeck *PlayerDeck) Eligible() bool {
@@ -124,7 +130,7 @@ func (playerDeck *PlayerDeck) Eligible() bool {
 	}
 	unit_cards := 0
 	for _, card := range *playerDeck.Deck {
-		if card.Strength > 0 || card.Effects.Has(Medic) || card.Effects.Has(Spy) {
+		if card.IsUnit() {
 			//only Unit card have a strength > 0 (except Avallach and Havekar Healers)
 			unit_cards += 1
 		}
