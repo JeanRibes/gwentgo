@@ -30,8 +30,3 @@ appear. Cards have an ID which is unique (position in CSV file), in a deck.
 
 Upon creating a game, the cards inside a reindexed, because there can be the same cards on both sides, so we need to
 differenciate them.
-
-# Issues
-
-* fix Villentremerth: it can be scorched by itself
-* tests for scorch
