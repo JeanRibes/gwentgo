@@ -42,7 +42,6 @@ func loadData() {
 
 func backupRoutine() {
 	for {
-		save()
 		saveData()
 		time.Sleep(time.Second * 10)
 	}

@@ -5,16 +5,36 @@
     <title>HTML5 Gwynt - Waiting Room</title>
 </head>
 <body>
-<p>You have created a game room, now you just need to wait for someone to join in.</p>
+The link below can be sent to a friend so that he may join you to play.
+<pre><code id="link">/multi/join/{{.Key}}</code></pre>
 
-<p>If you want to send someone a link, send this link <code id="link">/join/{{.Key}}</code></p>
-
-<a href="/waiting">Refresh</a>
+<div id="info" style="background-color: black;color: white; margin: 1rem; padding:1rem;">
+    waiting for join
+</div>
 
 <script>
     let elem = document.getElementById("link");
     let url = document.location.origin + elem.innerText;
-    elem.innerText=url
+    elem.innerText = url
+
+    const eventSource = new EventSource("/multi/wait");
+    eventSource.onerror = (event) => {
+        console.log(event)
+        eventSource.close()
+    }
+    eventSource.onopen = console.log
+    eventSource.onmessage = console.log
+    eventSource.addEventListener("hello", function (e) {
+        console.log("hi !!!", e);
+    });
+
+    eventSource.addEventListener("ready", function (event) {
+        console.log("readyyyyy !!!", event);
+        document.getElementById('info').innerText = event.data
+
+    });
+    //eventSource.onmessage = console.log
+
 </script>
 </body>
 </html>
