@@ -16,6 +16,7 @@ func delcookie(c *gin.Context, key string) {
 func main() {
 	println("Loading data...")
 	loadData()
+	loadmpg()
 	println("done")
 	go backupRoutine()
 
@@ -24,6 +25,7 @@ func main() {
 	go func() {
 		<-c
 		saveData()
+		savempg()
 		os.Exit(0)
 	}()
 	logger := gin.Logger()
@@ -58,7 +60,9 @@ func main() {
 		Use(MultiGameMiddleware).
 		GET("/wait", waitingRoom).
 		GET("/choosedeck/:index", chooseDeck).
-		GET("start", startGame)
+		GET("/game/event", gameEventListener).
+		GET("/game", gameHandler).
+		POST("/game", moveHandler)
 
 	//r.GET("/game", gameHandler)
 

@@ -82,6 +82,7 @@ func GameFromDecks(a *PlayerDeck, b *PlayerDeck) (*Game, error) {
 	game := NewGame(ad, ah, bd, bh)
 	game.SideA.Leader = a.Leader
 	game.SideB.Leader = b.Leader
+	game.Sort()
 	return game, nil
 }
 
@@ -91,6 +92,7 @@ func (g *Game) fixSides() {
 }
 
 func (g *Game) Pass(side *GameSide) {
+	//TODO: use a Turn instead of a GameSide
 	g.recordPass(side.Side)
 	side.Passed = true
 	if !g.NextRound() { //if only one player passed, switch turn

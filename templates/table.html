@@ -6,7 +6,7 @@
                      title="{{.Enemy.Leader.DisplayName}}, {{.Enemy.Leader.Title}}"/>
             </div>
 
-            <div class="leader enemy">
+            <div class="leader enemy {{if ne .Turn .Side}}my-turn{{end}}" id="leader-enemy">
                 Enemy
                 <br>
                 {{.Enemy.Hand | len}} 🂠
@@ -41,7 +41,7 @@
                 </div>
             </div>
 
-            <div class="leader player">
+            <div class="leader player {{if eq .Turn .Side}}my-turn{{end}}" id="leader-player">
                 Player
                 <br/>
                 {{.Player.Hand | len}} 🂠
@@ -223,13 +223,4 @@
             </div>
         </div>
     </div>
-    {{template "passed" .}}
-    {{if .Player.Passed}}
-    <script>
-        setTimeout(() => {
-            console.log("pass auto")
-            pass(null);
-        }, 1000)
-    </script>
-    {{end}}
 </div>

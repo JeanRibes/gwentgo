@@ -2,10 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>HTML5 Gwynt</title>
+    <title>HTML5 Gwynt - multiplayer</title>
     <link href="/static/style.css" rel="stylesheet"/>
     <link href="/static/game.css" rel="stylesheet"/>
-
+    <style>
+        .my-turn {
+            background-color: coral;
+            border: 5px solid cyan;
+        }
+    </style>
 </head>
 <body>
 
@@ -13,7 +18,7 @@
 
 <a class="button" href="{{.Url}}">refresh</a>
 
-<form id="form-play-move" action="{{.Url}}" method="post">
+<form action="{{.Url}}" id="form-play-move" method="post">
     <fieldset>
         <legend>Manual play</legend>
         <label for="card-id">Card ID to play</label>
@@ -27,6 +32,41 @@
         <button class="button" id="form-play-submit" type="submit">Play</button>
     </fieldset>
 </form>
+<script>
+    var myTurn = false;
+    const side = "{{.Side}}"
+    const eventSource = new EventSource("/multi/game/event");
+    eventSource.onerror = (event) => {
+        console.log(event)
+        eventSource.close()
+    }
+    eventSource.onopen = console.log
+    eventSource.onmessage = console.log
+
+    eventSource.addEventListener("GameUpdated", (event) => {
+        console.log("trying ajax update game")
+        htmx.ajax('GET', '{{.Url}}', {
+            target: '#gametable',
+        })
+    })
+
+    eventSource.addEventListener("TurnChanged", (event) => {
+        myTurn = event.data === side;
+        console.log("turn changed, is mine:", myTurn)
+        /*if(myTurn){ // all of this is handled in the HTML with the game update
+            document.getElementById('leader-player').classList.add('my-turn')
+            document.getElementById('leader-enemy').classList.remove('my-turn')
+        } else {
+            document.getElementById('leader-player').classList.remove('my-turn')
+            document.getElementById('leader-enemy').classList.add('my-turn')
+        }*/
+    })
+
+    eventSource.addEventListener("GameFinished", (event) => {
+        console.log("game finished !!")
+        document.location.href = 'http://perdu.com'
+    })
+</script>
 <script>
     var passed = false;
     let highlightColor = "peru";
@@ -201,12 +241,4 @@ Effects:
 {{end}}
 
 {{template "passed" .}}
-{{if .Player.Passed}}
-<script>
-    setTimeout(() => {
-        console.log("pass auto")
-        pass(null);
-    }, 1000)
-</script>
-{{end}}
 {{end}}

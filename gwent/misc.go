@@ -641,6 +641,16 @@ func (turn Turn) MarshalJSON() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
+func (turn Turn) Enemy() Turn {
+	if turn == PlayerA {
+		return PlayerB
+	}
+	if turn == PlayerB {
+		return PlayerA
+	}
+	return Tie
+}
+
 func (card *Card) IsUnit() bool {
 	return card.Strength > 0 || card.Effects.Has(Spy) || card.Effects.Has(Medic)
 }

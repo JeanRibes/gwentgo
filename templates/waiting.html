@@ -45,11 +45,19 @@ The link below can be sent to a friend so that he may join you to play.
         console.log("hi !!!", e);
     });
 
-    eventSource.addEventListener("ready", function (event) {
-        console.log("readyyyyy !!!", event);
+    eventSource.addEventListener("joined", function (event) {
         document.getElementById('info').innerText = event.data
 
     });
+    eventSource.addEventListener("deck", function (event) {
+        document.getElementById('info').innerText = event.data
+    })
+    eventSource.addEventListener("ready", function (event) {
+        document.getElementById('info').innerText = event.data
+        console.log("ready !!!!")
+        console.log(event)
+        document.location.href = '/multi/game'
+    })
     //eventSource.onmessage = console.log
 
 </script>
