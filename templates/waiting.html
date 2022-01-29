@@ -12,6 +12,23 @@ The link below can be sent to a friend so that he may join you to play.
     waiting for join
 </div>
 
+<div>
+    <h3>Choose your deck</h3>
+    {{range $i,$e := .User.Decks}}
+    <button hx-get="/multi/choosedeck/{{$i}}" hx-swap="outerHTML">{{$e.Name}} ({{$e.Faction}})</button>
+    {{end}}
+</div>
+<script src="/static/htmx-1.6.1.js"></script>
+<!--
+<form method="post" action="/multi/choosedeck">
+    <select>
+        {{range $i,$e := .User.Decks}}
+        <option value="{{$i}}">{{$e.Name}}</option>
+        {{end}}
+    </select>
+    <button type="submit">Choose deck</button>
+</form>-->
+
 <script>
     let elem = document.getElementById("link");
     let url = document.location.origin + elem.innerText;

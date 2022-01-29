@@ -616,19 +616,22 @@ func (turn Turn) String() string {
 	}
 	return "Tie"
 }
+
+func UnstringTurn(str string) Turn {
+	if str == "PlayerA" {
+		return PlayerA
+	}
+	if str == "PlayerB" {
+		return PlayerB
+	}
+
+	return Tie
+}
+
 func (turn *Turn) UnmarshalJSON(data []byte) (err error) {
 	str := string(data)
 	str = str[1 : len(str)-1]
-	*turn = Tie
-	if str == "PlayerA" {
-		*turn = PlayerA
-	}
-	if str == "PlayerB" {
-		*turn = PlayerB
-	}
-	if str == "Tie" {
-		*turn = Tie
-	}
+	*turn = UnstringTurn(str)
 	return nil
 }
 func (turn Turn) MarshalJSON() ([]byte, error) {

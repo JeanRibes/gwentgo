@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Démo SSE</title>
+</head>
+<body hx-sse="connect:/sse/event">
+page SSE avec HTMX
+<div hx-get="/sse/counter" hx-trigger="sse:demo">
+    counter
+</div>
+
+
+<script src="/static/htmx-1.6.1.js"></script>
+</body>
+</html>

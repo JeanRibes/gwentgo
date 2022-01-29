@@ -14,14 +14,14 @@ func init() {
 	}
 }
 
+const USER = "user"
+
 func UserDataMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		cookie, err := c.Cookie("user")
+		cookie, err := c.Cookie(USER)
 		if err != nil {
-			/*c.Set("user", demoData)
-			c.Next()
-			return*/
 			c.String(http.StatusUnauthorized, "unauthorized, no cookie")
+			c.Abort()
 			return
 		}
 		user, ok := userDb[cookie]
@@ -29,7 +29,8 @@ func UserDataMiddleware() gin.HandlerFunc {
 			user = gwent.NewPlayerData("username", cookie)
 			userDb[cookie] = user
 		}
-		c.Set("user", user)
+		c.Set(USER, user)
+
 		c.Next()
 	}
 }
@@ -37,7 +38,7 @@ func UserDataMiddleware() gin.HandlerFunc {
 func register(c *gin.Context) {
 	username := c.PostForm("username")
 	cookie := RandomString(64)
-	setcoookie(c, "user", cookie)
+	setcoookie(c, USER, cookie)
 	userDb[cookie] = gwent.NewPlayerData(username, cookie)
 	c.Redirect(302, "/deck/0/")
 }

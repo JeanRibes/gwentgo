@@ -9,6 +9,9 @@ import (
 func setcoookie(c *gin.Context, key string, value string) {
 	c.SetCookie(key, value, 360000000, "/", "localhost", false, false)
 }
+func delcookie(c *gin.Context, key string) {
+	c.SetCookie(key, "", -1, "/", "localhost", false, false)
+}
 
 func main() {
 	println("Loading data...")
@@ -29,6 +32,10 @@ func main() {
 	r.LoadHTMLGlob("templates/*")
 	r.Static("/static", "./static")
 
+	r.GET("/", func(c *gin.Context) {
+		c.File("static/index.html")
+	})
+
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
@@ -45,10 +52,13 @@ func main() {
 
 	r.Group("/multi").
 		Use(logger, UserDataMiddleware()).
-		GET("/join", joinGame).
-		GET("/join/:gamekey", joinGame).
 		GET("/create", createMPgame).
-		GET("/wait", waitingRoom)
+		GET("/join", joinGameP1).
+		GET("/join/:gamekey", joinGameP2).
+		Use(MultiGameMiddleware).
+		GET("/wait", waitingRoom).
+		GET("/choosedeck/:index", chooseDeck).
+		GET("start", startGame)
 
 	//r.GET("/game", gameHandler)
 
@@ -68,7 +78,7 @@ func main() {
 		GET("/:index/", showDeck).
 		POST("/:index/", editDeck).
 		POST("/", newDeck).
-		GET("/:index/start", UserDataMiddleware(), startSoloGame).
+		GET("/:index/start", startSoloGame).
 		POST("/:index/add/:id", addToDeck).
 		POST("/:index/remove/:id", removeFromDeck)
 
