@@ -82,10 +82,7 @@ td.drag-indicator {
     overflow: hidden;
     text-overflow: clip;
 
-    background-color: black;
-    color: transparent;
-    text-shadow: 0 2px 3px #4e270b;
-    background-clip: text;
+    color: grey;
 
     position: absolute;
     top: 0;

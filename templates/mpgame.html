@@ -5,14 +5,80 @@
     <title>HTML5 Gwynt - multiplayer</title>
     <link href="/static/style.css" rel="stylesheet"/>
     <link href="/static/game.css" rel="stylesheet"/>
+
     <style>
-        .my-turn {
-            background-color: coral;
-            border: 5px solid cyan;
+        /*{{if .Firefox}}*/
+        .row-placeholder {
+            background-color: black;
+            color: transparent;
+            text-shadow: 0 2px 3px #4e270b;
+            background-clip: text;
         }
+
+        /*{{end}}*/
+
+        .my-turn {
+            border-top: 2px solid gold;
+            border-bottom: 2px solid gold;
+        }
+
+        #turn-overlay {
+            position: fixed;
+            width: 100vw;
+            height: fit-content;
+            top: 45vh;
+            left: 0;
+            text-align: center;
+            background-color: rgba(0, 0, 0, 70%);
+            color: goldenrod;
+            z-index: 100;
+            font-family: sans-serif;
+            font-weight: bold;
+            font-size: 2.3rem;
+            padding: 1rem;
+
+            opacity: 0;
+
+            transition: 0.3s;
+        }
+
+        #turn-overlay::before {
+            content: "🤵";
+            height: 10rem;
+            width: 10rem;
+            background-color: goldenrod;
+            display: block;
+            position: absolute;
+            top: -70%;
+            left: 25%;
+            border-radius: 6rem;
+            border: 0.4rem solid black;
+            color: transparent;
+            text-shadow: 0 0 0 black;
+            font-size: 8.5rem;
+        }
+
+        #turn-overlay.turn-indicator-opponent::before {
+            content: "🤵";
+            font-size: 7.5rem;
+            line-height: 9.5rem;
+        }
+
+        #turn-overlay.turn-indicator-you::before {
+            content: "❂";
+        }
+
+        #turn-overlay.visible {
+            opacity: 100%;
+        }
+
     </style>
 </head>
 <body>
+{{.Firefox}}
+<div class="" id="turn-overlay">
+    Turn header
+</div>
 
 {{template "table.html" .}}
 
@@ -33,6 +99,13 @@
     </fieldset>
 </form>
 <script>
+    function animateTurnIndicator() {
+        document.getElementById('turn-overlay').classList.add('visible')
+        setTimeout(() => {
+            document.getElementById('turn-overlay').classList.remove('visible')
+        }, 1000)
+    }
+
     var myTurn = false;
     const side = "{{.Side}}"
     const eventSource = new EventSource("/multi/game/event");
@@ -51,25 +124,54 @@
     })
 
     eventSource.addEventListener("TurnChanged", (event) => {
+        console.log('TurnChanged', event)
         myTurn = event.data === side;
+        let turn_indicator = document.getElementById('turn-overlay');
+        turn_indicator.style.animation = "none"
         console.log("turn changed, is mine:", myTurn)
-        /*if(myTurn){ // all of this is handled in the HTML with the game update
-            document.getElementById('leader-player').classList.add('my-turn')
-            document.getElementById('leader-enemy').classList.remove('my-turn')
+
+        if (event.data !== 'PlayerA' && event.data !== 'PlayerB') {
+            turn_indicator.classList.remove('turn-indicator-opponent')
+            turn_indicator.classList.remove('turn-indicator-you')
+            return
+        }
+        if (myTurn) {
+            turn_indicator.innerText = "Your Turn !"
+            turn_indicator.classList.add('turn-indicator-you')
+            turn_indicator.classList.remove('turn-indicator-opponent')
         } else {
-            document.getElementById('leader-player').classList.remove('my-turn')
-            document.getElementById('leader-enemy').classList.add('my-turn')
-        }*/
+            turn_indicator.innerText = "Opponent's Turn"
+            turn_indicator.classList.remove('turn-indicator-you')
+            turn_indicator.classList.add('turn-indicator-opponent')
+        }
+        animateTurnIndicator();
     })
 
     eventSource.addEventListener("GameFinished", (event) => {
-        console.log("game finished !!")
-        document.location.href = 'http://perdu.com'
+        console.log("GameFinished", event)
+        //document.location.href = 'http://perdu.com'
+        let turn_indicator = document.getElementById('turn-overlay');
+        turn_indicator.classList.remove('turn-indicator-opponent')
+        turn_indicator.classList.remove('turn-indicator-you')
+        turn_indicator.classList.add('game-finished')
+        turn_indicator.style.animation = "none"
+        turn_indicator.innerText = event.data
+
+        animateTurnIndicator();
+    })
+
+    eventSource.addEventListener("EnemyPassed", (event) => {
+        console.log("EnemyPassed", event)
+        let turn_indicator = document.getElementById('turn-overlay');
+        turn_indicator.classList.add('turn-indicator-opponent')
+        turn_indicator.classList.remove('turn-indicator-you')
+        turn_indicator.style.animation = "none"
+        turn_indicator.innerText = "Opponent passed !"
+
+        animateTurnIndicator();
     })
 </script>
 <script>
-    var passed = false;
-    let highlightColor = "peru";
     let normalRows = ['Weather', 'CloseCombat', 'RangedCombat', 'Siege']
 
     function startDragCard(event, row, cardid) {
@@ -181,6 +283,10 @@
                 "row": row,
                 "id": id,
             }
+        }).then((res) => {
+            console.log("htmx ajax OK", res)
+        }).catch((res) => {
+            console.log("htmx ajax FAIL", res)
         })
     }
 
@@ -231,14 +337,4 @@ Effects:
 {{end}}
 
 {{define "passed"}}
-{{if .Player.Passed}}
-{{if not .Enemy.Passed}}
-<script>
-    passed = true;
-</script>
-{{end}}
-{{end}}
-{{end}}
-
-{{template "passed" .}}
 {{end}}

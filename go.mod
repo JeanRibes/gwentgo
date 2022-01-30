@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/gin-gonic/gin v1.7.7
+	github.com/mileusna/useragent v1.0.2
 	github.com/stretchr/testify v1.5.1
 )
 

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"github.com/mileusna/useragent"
 	"gwentgo/gwent"
 	"io"
 	"log"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type MpEvent int
@@ -327,7 +329,12 @@ func gameHandler(c *gin.Context) {
 	game := lobby.Game
 	player := game.Side(side)
 	enemy := game.Side(side.Enemy())
-	println("ajax ?: ", c.GetHeader("HX-Request"))
+
+	if game.Finished() {
+		//lobby.GameChannel[side] <- GameFinished
+	} else {
+		lobby.GameChannel[side] <- TurnChanged
+	}
 	if c.GetHeader("HX-Request") == "true" {
 		displayMPboard(c, "/multi/game", "table.html", false, game, player, enemy)
 	} else {
@@ -351,7 +358,7 @@ func moveHandler(c *gin.Context) {
 	if cardid < 0 {
 		game.Pass(player)
 		lobby.GameChannel[side.Enemy()] <- EnemyPassed
-		lobby.GameChannel[side.Enemy()] <- TurnChanged
+		//lobby.GameChannel[side.Enemy()] <- TurnChanged
 		lobby.GameChannel[side] <- TurnChanged
 		lobby.GameChannel[side.Enemy()] <- GameUpdated
 		displayMPboard(c, "/multi/game",
@@ -387,11 +394,20 @@ func gameEventListener(c *gin.Context) {
 	side := c.MustGet(SIDE).(gwent.Turn)
 	channel := lobby.GameChannel[side]
 
+	if lobby.Game.Finished() {
+		time.Sleep(time.Second * 3)
+		lobby.GameChannel[side] <- GameFinished
+	}
+
 	c.Stream(func(w io.Writer) bool {
 		event := <-channel
 		switch event {
 		case TurnChanged:
 			c.SSEvent("TurnChanged", lobby.Game.Turn.String())
+			break
+		case GameFinished:
+			c.SSEvent("GameFinished", lobby.Game.Winner().String()+" won !")
+			break
 		default:
 			c.SSEvent(event.String(), "event "+event.String())
 		}
@@ -420,6 +436,8 @@ func displayMPboard(
 	game *gwent.Game,
 	player *gwent.GameSide,
 	enemy *gwent.GameSide) {
+	userAgent := ua.Parse(c.GetHeader("User-Agent"))
+
 	weather := game.WeatherCards.Effects()
 	c.HTML(200, template, gin.H{
 		"Weather": gin.H{
@@ -432,13 +450,14 @@ func displayMPboard(
 			"Player": game.LivesLeft(player.Side),
 			"Enemy":  game.LivesLeft(enemy.Side),
 		},
-		"MySide": player,
-		"Player": player,
-		"Enemy":  enemy,
-		"Url":    url,
-		"Choice": choice,
-		"Round":  game.Round(),
-		"Turn":   game.Turn.String(),
-		"Side":   player.Side.String(),
+		"MySide":  player,
+		"Player":  player,
+		"Enemy":   enemy,
+		"Url":     url,
+		"Choice":  choice,
+		"Round":   game.Round(),
+		"Turn":    game.Turn.String(),
+		"Side":    player.Side.String(),
+		"Firefox": userAgent.Name == ua.Firefox,
 	})
 }

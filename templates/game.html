@@ -28,7 +28,6 @@
     </fieldset>
 </form>
 <script>
-    var passed = false;
     let highlightColor = "peru";
     let normalRows = ['Weather', 'CloseCombat', 'RangedCombat', 'Siege']
 
@@ -191,16 +190,6 @@ Effects:
 {{end}}
 
 {{define "passed"}}
-{{if .Player.Passed}}
-{{if not .Enemy.Passed}}
-<script>
-    passed = true;
-</script>
-{{end}}
-{{end}}
-{{end}}
-
-{{template "passed" .}}
 {{if .Player.Passed}}
 <script>
     setTimeout(() => {
