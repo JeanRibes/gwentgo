@@ -32,6 +32,7 @@ func main() {
 	r := gin.New()
 	//r.Use(gin.Recovery())
 	r.LoadHTMLGlob("templates/*")
+	r.Use(logger)
 	r.Static("/static", "./static")
 
 	r.GET("/", func(c *gin.Context) {
